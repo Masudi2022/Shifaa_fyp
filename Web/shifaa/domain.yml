@@ -1,0 +1,40 @@
+version: "3.1"
+
+intents:
+  - greet
+  - goodbye
+  - affirm
+  - deny
+  - give_symptom
+  - ask_diagnosis
+
+entities:
+  - symptom
+
+slots:
+  symptoms:
+    type: list
+    influence_conversation: true
+  suggested_symptom:
+    type: text
+    influence_conversation: true
+  disease_prediction:
+    type: text
+    influence_conversation: false
+
+responses:
+  utter_greet:
+    - text: "Habari! Karibu, unaweza kuniambia unaumwa nini?"
+
+  utter_goodbye:
+    - text: "Asante kwa kutumia huduma yetu. Tuwasiliane tena!"
+
+  utter_ask_more_symptoms:
+    - text: "Pole sana, unaweza niambia dalili nyingine unazopata?"
+
+  utter_default:
+    - text: "Samahani, sikuelewa vizuri. Tafadhali jaribu tena."
+
+actions:
+  - action_collect_symptom
+  - action_predict_disease

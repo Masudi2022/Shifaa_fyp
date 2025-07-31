@@ -1,0 +1,47 @@
+version: "3.1"
+
+nlu:
+- intent: greet
+  examples: |
+    - habari
+    - shikamoo
+    - mambo
+    - hello
+    - hi
+
+- intent: goodbye
+  examples: |
+    - kwaheri
+    - asante
+    - tutaonana
+    - bye
+
+- intent: affirm
+  examples: |
+    - ndio
+    - sahihi
+    - naam
+    - kweli
+
+- intent: deny
+  examples: |
+    - hapana
+    - siyo
+    - siko hivyo
+
+- intent: give_symptom
+  examples: |
+    - ninaumwa kichwa
+    - nasikia baridi
+    - nasumbuliwa na mafua
+    - nina homa na kikohozi
+    - nina degedege
+    - ninaumwa tumbo
+    - ninatapika
+    - napata jasho sana
+
+- intent: ask_diagnosis
+  examples: |
+    - naweza kujua ugonjwa gani?
+    - nifanye vipimo gani?
+    - unafikiri ni ugonjwa gani?

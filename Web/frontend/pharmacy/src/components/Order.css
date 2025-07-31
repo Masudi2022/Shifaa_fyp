@@ -1,0 +1,10 @@
+/* Order.css */
+.medicine-image {
+  max-height: 300px;
+  object-fit: cover;
+}
+
+.order-confirmation {
+  text-align: center;
+  padding: 50px;
+}

@@ -1,0 +1,24 @@
+version: "3.1"
+
+stories:
+  - story: Report symptoms and get diagnosis
+    steps:
+      - intent: greet
+      - action: utter_greet
+
+      - intent: start_diagnosis
+      - action: utter_start_diagnosis
+
+      - intent: report_symptom
+        entities:
+          - symptom: "kikohozi"
+      - action: action_collect_symptom
+
+      - intent: affirm
+      - action: action_collect_symptom
+
+      - intent: deny
+      - action: action_collect_symptom
+
+      - intent: goodbye
+      - action: utter_goodbye

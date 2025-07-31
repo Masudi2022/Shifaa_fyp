@@ -1,0 +1,15 @@
+{
+  "lookup": {
+    "eJyLrq6NBQAEOAGx": "action_listen",
+    "eJyLrq7VUaguKEoti09MLsnMz7NSqIYw4vMSc1OtFKCcnMziktQ8oNrS4tQioJrMPCC3xEohvSg1taS2NhYA6dwbhQ==": "utter_greet",
+    "eJyLrq7VUaguKEoti09MLsnMz7NSqIYw4vMSc1OtFKCcnMziktQ8oNrS4tQioJrMPCC3xEohvSg1taSWgBmlJSWpRfEQpbhMiAUAQvc0lw==": "action_listen",
+    "eJydjksKwzAQQ68yB/AJfBUTTAiiDNQfxnKhGN+9hqTLUshOQo+HwphORjW84n5QS/YyzhDznuDlKk9tRF5sb7DFaF6VXh4GcP5xdBIWT/Se4ceLJVAqmpfQ3qmypM3JV2yoxRivYc7tA44VWkQ=": "action_collect_symptom",
+    "eJydjksKwzAMRK+iA+QEvkoIJpihCPxDnhSKyd1rSEpXJSU7DXp6o7nvk/RqePo1UEt20o/B5zXByRmiNiIPdmuwwWgekU4eBnC/cGwkzB/oPcOPL4ZAqWhO5vZKlSUtk3zEhlqM/lz82RBKjAjfq3tVyxvrboPA": "utter_ask_more_symptoms",
+    "eJy1kN0JwzAMhFfRAJnAq4RgjDmCqf+QlEAx2b0GJ/SptAT6pkN33wnN7ZioVcZunddQsqE2BptdgqFTxCCK3L2bgLsn5C7V0MqAHl8YmyrYDus9wocrOiBogBia5ZmqlrRMdIEZtbDac/Fjgy8xwr9T/6ga73DysKkwrpTc7FpeXBit0A==": "action_listen",
+    "eJy1kVsKhDAMRbeSBbiCbkWklBKHMH2RRGEo7n0KVfySGQT/csnNyWus2wC1MK7WeaWcDNQe2OQiGthFIFFMzbsIcvNQalINvBhRtx+MRRXZdus9wsUUDUBKKAZG+cSiOU4DHGDGklntnvizg88hoD+rnmjVz+HkbWNmPKrkybWu3ufmmbhBpi/EOcgC": "action_collect_symptom",
+    "eJy1kW0KwzAIhq/iAXqCXKWUEIIdsnyhdjBC775AWgqDsrHRf4qvj/o61nWAWhgf1nmlnAzUHtjkIhrYkkCimJp2EeSmodRSNXBjRF0/MBZVZNulvxFOtmgAUkIxMMozFs1xGmAHM5bMarfClxN8DgH90XXFqG6Hk7uNmXHvkivPOnufm2fiv715p00vTuPmAw==": "utter_ask_more_symptoms",
+    "eJy1kW0KwzAIhq/iAXqCXKWUEIIdsuYDtYMRevcF0lIYlO6D/lN8ffTVviwdlMz4sM4rpWigtMBGF9DAmkwkirFqZ0GuGoo1VQM3RtTlhDGrItsm/Y1wsEUFkBKKgV6eIWsKQwcbmDEnVrsWPpzg0zSh37uuGNXO4eRuQ2LcuuRKW0fvc+NI/PdtvqOd2n/HDS8LUASn": "action_listen",
+    "eJy1kW0KwyAMhq/iAXoCr1KKiEuHzC+SdFDEu0+wpb+kW0f/JeTNk7zJmMsgckJ4K23YxiBFboEK2oMUW+IsMYSqXQiwamyoKUvxRAAuJ4yFGVA16TVCZ4sKsGyBpBhp9YmjnwaxgxFSRFZb4csJJjoH5ui6Y1Q7h6aX8hFh76I7bfXep+fZ4t+3+Y12av/Scj2HDwhrKdMHm/UeFA==": "action_predict_disease",
+    "eJy1kWEKgzAMha/SA3iCXkWkFH2OMNtKEgci3n0FJ/tVdA7/JeTlS15SL2tllpHxcr5VStGaZQtc9AHWfJKBRBGzdhJw1lDMqVrzYEDXA8akCnab9BqhsEUGkBLEmlrmMGoKTWV2MGNMrO5TODmhTcOA9tt1x6jtHF6eLiTG3iV32iq9z/c98d+3+Y12aP/SciWHHeJ8EpEVHWV/HQm8oMRq3t/TOxo=": "action_listen"
+  }
+}

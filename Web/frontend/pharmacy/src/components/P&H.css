@@ -1,0 +1,102 @@
+/* P&H.css */
+
+/* Override Bootstrap Variables if needed */
+/* For example, to customize Bootstrap's primary color to match your theme */
+:root {
+    --bs-primary: #004d40; /* Update Bootstrap's primary color */
+    --bs-secondary: #117050; /* Define a secondary color */
+}
+
+/* General Styles */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Hero Section */
+.hero {
+    background-color: #00796b !important; /* Ensures Bootstrap's bg-color is overridden */
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 60vh;
+    /* background-image: url('./Images/hero-background.jpg'); Optional: Add a background image */
+    background-size: cover;
+    background-position: center;
+}
+
+.hero h1 {
+    font-size: 2.5em;
+    font-weight: bold;
+}
+
+.hero p {
+    font-size: 1.2em;
+}
+
+/* Services Section */
+.services {
+    padding: 6rem 2rem;
+    background-color: #faf7f7;
+    text-align: center;
+}
+
+#service-title h3 {
+    color: #4ccaca;
+    margin-bottom: 2rem;
+}
+
+/* About Us Section */
+.about-us {
+    padding: 50px 20px;
+    background-color: #f1f8e9;
+    text-align: center;
+}
+
+.about-us h2 {
+    margin-bottom: 30px;
+}
+
+.about-us p {
+    max-width: 600px;
+    margin: 0 auto;
+    font-size: 1.1em;
+}
+
+/* Contact Section */
+.contact {
+    padding: 50px 20px;
+    background-color: #c8e6c9;
+    text-align: center;
+}
+
+.contact h2 {
+    margin-bottom: 30px;
+}
+
+.contact ul li {
+    margin-bottom: 10px;
+    font-size: 1.1em;
+}
+
+/* Footer */
+footer {
+    background-color: #004d40 !important; /* Ensures Bootstrap's bg-color is overridden */
+    color: #fff;
+    text-align: center;
+    padding: 10px;
+}
+
+/* Service Card Hover Effect */
+.card:hover {
+    transform: translateY(-5px);
+    transition: transform 0.3s;
+}
+
+/* Back Button */
+.back-button {
+    cursor: pointer;
+}

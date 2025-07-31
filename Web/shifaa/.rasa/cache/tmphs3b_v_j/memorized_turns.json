@@ -1,0 +1,8 @@
+{
+  "lookup": {
+    "eJyLrq6NBQAEOAGx": "action_listen",
+    "eJyLrq7VUaguKEoti09MLsnMz7NSqIYw4vMSc1OtFKCcnMziktQ8oNrS4tQioJrMPCC3xEqhuDK3oCQ/N74otSC/qKS2NhYA9k4fgg==": "action_predict_disease",
+    "eJyNjMEJgDAMAFfJAE7QVURCafMI2LQkUZDS3S3oX393cNzaxwK9KZ0Yk3OVAP0BlFgowCs7m5PM9jDS2bBM9QB2lea1oFKr6uPfbBaZk2Nmo2j0fd1uHQdA7A==": "action_provide_treatment",
+    "eJytzEsKwzAMhOGr+AA9ga9SgjDxLATxA0k1BOO7V5Dum0V2M/Dzved6hdkFg9Ju3GoM8xpUU0EMv3OwGqq3H4V4w9WvxaBn6dYKCXoTW/cwLzLvRpkVSfGY2gZnkAmSFXf+u9sXTb9jWg==": "action_listen"
+  }
+}

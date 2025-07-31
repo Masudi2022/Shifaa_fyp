@@ -1,0 +1,116 @@
+/* General Styles */
+.booking-content input {
+    width: 100%;
+    padding: 10px;
+    border-radius: 20px;
+    border: 1px solid #ccc;
+    font-size: 16px;
+    outline: none;
+    margin-bottom: 10px;
+}
+
+.suggestions-list {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background-color: #fff;
+    position: absolute;
+    width: calc(100% - 20px);
+    max-height: 150px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.suggestions-list li {
+    padding: 12px;
+    cursor: pointer;
+    width: 100%; /* Adjust width for better responsiveness */
+    transition: background-color 0.3s ease;
+}
+
+.suggestions-list li:hover {
+    background-color: #f0f0f0;
+}
+
+.booking-container .search-input {
+    padding: 10px 20px;
+    font-size: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 30px;
+    width: 100%; /* Make it responsive */
+    outline: none;
+}
+
+.booking-content p {
+    color: #555;
+    font-size: 1.2rem;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+}
+
+.booking-content button {
+    display: inline-block;
+    background-color: #117050;
+    color: #fff;
+    padding: 0.75rem 1.5rem;
+    border-radius: 30px;
+    text-decoration: none;
+    font-weight: bold;
+    border: none;
+    margin-left: 0; /* Adjust margin for responsiveness */
+    height: auto; /* Make height auto for better responsiveness */
+    transition: background-color 0.3s ease;
+}
+
+.booking-content button:hover {
+    background-color: #0d5a3d;
+}
+
+/* Map Size */
+.pharmacy-map {
+    height: 60vh; /* Adjust height for responsiveness */
+    width: 100%; /* Set to full width */
+    margin-top: 20px; /* Adjust margin as needed */
+}
+
+/* Media Queries for Responsiveness */
+@media (max-width: 1200px) {
+    .booking-container .search-input {
+        width: 80%; /* Adjust width for medium screens */
+    }
+}
+
+@media (max-width: 992px) {
+    .booking-content button {
+        width: 100%; /* Full width on smaller screens */
+        margin-left: 0; /* Remove negative margin */
+    }
+}
+
+@media (max-width: 768px) {
+    .booking-content input {
+        font-size: 14px; /* Smaller font size for small screens */
+    }
+
+    .booking-content p {
+        font-size: 1rem; /* Smaller font size for small screens */
+    }
+
+    .pharmacy-map {
+        height: 50vh; /* Adjust height for smaller screens */
+    }
+}
+
+@media (max-width: 576px) {
+    .booking-container .search-input {
+        width: 100%; /* Full width on extra small screens */
+    }
+
+    .booking-content input,
+    .booking-content p {
+        font-size: 12px; /* Smaller font size for extra small screens */
+    }
+}
