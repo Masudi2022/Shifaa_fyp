@@ -71,6 +71,13 @@ export default function BookingHistory() {
       </Text>
       {item.reason && <Text style={styles.notes}>Reason: {item.reason}</Text>}
 
+      {/* Show doctor comments/notes */}
+      {item.notes ? (
+        <Text style={styles.doctorNotes}>💬 Doctor's Comment: {item.notes}</Text>
+      ) : (
+        <Text style={styles.noNotes}>No comments from doctor yet</Text>
+      )}
+
       {/* Show confirmation status */}
       <Text style={styles.status}>
         Confirmation:{" "}
@@ -151,6 +158,18 @@ const styles = StyleSheet.create({
   name: { fontSize: 16, fontWeight: "bold" },
   time: { fontSize: 14, color: "#4E8CFF" },
   notes: { fontSize: 13, color: "#888", marginVertical: 4 },
+  doctorNotes: {
+    fontSize: 14,
+    color: "#1D4ED8",
+    marginVertical: 4,
+    fontStyle: "italic",
+  },
+  noNotes: {
+    fontSize: 14,
+    color: "#9CA3AF",
+    marginVertical: 4,
+    fontStyle: "italic",
+  },
   status: { fontSize: 14, marginTop: 4 },
   button: {
     flexDirection: "row",

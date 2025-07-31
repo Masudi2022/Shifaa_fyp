@@ -117,29 +117,43 @@ def handle_serializer(request, instance=None, partial=False):
         return Response({'detail': 'Appointment deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
 
 
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework import status
+from django.shortcuts import get_object_or_404
+from .models import Appointment
+
 @api_view(['PATCH'])
 @permission_classes([IsAuthenticated])
 def update_appointment_status(request, appointment_id):
-    """Doctor can confirm/unconfirm and update appointment status"""
-    appointment = get_appointment_or_404(appointment_id)
-    if not appointment:
-        return Response({'detail': 'Appointment not found'}, status=status.HTTP_404_NOT_FOUND)
+    """Doctor can confirm/unconfirm, update status, and add/edit notes."""
+    appointment = get_object_or_404(Appointment, id=appointment_id)
 
     if request.user != appointment.doctor:
-        return Response({'detail': 'You are not allowed to update this appointment'}, status=status.HTTP_403_FORBIDDEN)
+        return Response(
+            {'detail': 'You are not allowed to update this appointment'},
+            status=status.HTTP_403_FORBIDDEN
+        )
 
+    # Update confirmation
     if 'is_confirmed' in request.data:
         appointment.is_confirmed = request.data['is_confirmed']
 
+    # Update status
     if 'status' in request.data:
         if request.data['status'] in dict(Appointment.STATUS_CHOICES):
             appointment.status = request.data['status']
         else:
             return Response({'detail': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
 
-    appointment.save()
-    return Response({'detail': 'Appointment updated successfully'}, status=status.HTTP_200_OK)
+    # Update notes (doctor's comment)
+    if 'notes' in request.data:
+        appointment.notes = request.data['notes']
 
+    appointment.save()
+
+    return Response({'detail': 'Appointment updated successfully'}, status=status.HTTP_200_OK)
 
 
 

@@ -25,7 +25,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
             'id', 'user', 'user_name', 'doctor', 'doctor_name',
             'date', 'time', 'reason', 'created_at', 'is_confirmed', 'notes'
         ]
-        read_only_fields = ['user', 'user_name', 'doctor_name', 'created_at', 'is_confirmed', 'notes']
+        read_only_fields = ['user', 'user_name', 'doctor_name', 'created_at', 'is_confirmed']
 
     def create(self, validated_data):
         request = self.context.get('request')

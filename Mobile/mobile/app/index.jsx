@@ -83,108 +83,145 @@ export default function Home() {
       </View>
 
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-        {/* Doctor Card */}
-        <Animated.View style={[styles.card, { opacity: fadeAnim, transform: [{ translateY: slideUpAnim }] }]}>
-          <View style={styles.doctorHeader}>
-            <Image
-              source={{ uri: 'https://img.freepik.com/free-photo/doctor-with-his-arms-crossed-white-background_1368-5790.jpg' }}
-              style={styles.doctorImage}
-            />
-            <View style={styles.doctorInfo}>
-              <Text style={styles.doctorName}>Dr. Johan Jenson</Text>
-              <Text style={styles.specialty}>General Practitioner</Text>
-              <View style={styles.ratingContainer}>
-                <Ionicons name="star" size={16} color="#FFD700" />
-                <Text style={styles.ratingText}>4.9 (128 reviews)</Text>
-              </View>
-            </View>
-          </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.availabilityContainer}>
-            <View style={styles.priceContainer}>
-              <Text style={styles.priceLabel}>Consultation</Text>
-              <Text style={styles.price}>$15/session</Text>
-            </View>
-
-            <View style={styles.availability}>
-              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].map((day, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={[styles.day, index === 2 && styles.activeDay]}
-                  onPress={() => Haptics.selectionAsync()}
-                >
-                  <Text style={[styles.dayText, index === 2 && styles.activeDayText]}>{day}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          <TouchableOpacity
-            style={styles.bookButton}
-            onPress={() => handlePress(appointmentButtonRoute)}
-          >
-            <Text style={styles.bookButtonText}>{appointmentButtonText}</Text>
-            <Ionicons
-              name="calendar-outline"
-              size={18}
-              color="white"
-            />
-          </TouchableOpacity>
-        </Animated.View>
-
-        {/* Quick Access */}
-        <Text style={styles.sectionTitle}>Quick Access</Text>
-        <View style={styles.quickAccessRow}>
-          <TouchableOpacity
-            style={styles.quickAccessCard}
-            onPress={() => handlePress('/shifaa')}
-          >
-            <View style={styles.quickAccessIcon}>
-              <Ionicons name="chatbubble-ellipses" size={28} color="#4E8CFF" />
-            </View>
-            <Text style={styles.quickAccessTitle}>AI Doctor Chat</Text>
-            <Text style={styles.quickAccessSubtitle}>24/7 assistance</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.quickAccessCard}
-            onPress={() => handlePress('/pharmacy')}
-          >
-            <View style={[styles.quickAccessIcon, { backgroundColor: '#D1FAE5' }]}>
-              <FontAwesome5 name="clinic-medical" size={24} color="#10B981" />
-            </View>
-            <Text style={styles.quickAccessTitle}>Find Pharmacy</Text>
-            <Text style={styles.quickAccessSubtitle}>Nearby locations</Text>
-          </TouchableOpacity>
+       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+  
+  {/* Doctor Card */}
+  <Animated.View style={[styles.card, { opacity: fadeAnim, transform: [{ translateY: slideUpAnim }] }]}>
+    <View style={styles.doctorHeader}>
+      <Image
+        source={{ uri: 'https://img.freepik.com/free-photo/doctor-with-his-arms-crossed-white-background_1368-5790.jpg' }}
+        style={styles.doctorImage}
+      />
+      <View style={styles.doctorInfo}>
+        <Text style={styles.doctorName}>Dkt. Johan Jenson</Text>
+        <Text style={styles.specialty}>Daktari wa Magonjwa Mbalimbali</Text>
+        <View style={styles.ratingContainer}>
+          <Ionicons name="star" size={16} color="#FFD700" />
+          <Text style={styles.ratingText}>4.9 (watu 128)</Text>
         </View>
+      </View>
+    </View>
 
-        {/* Health Tips */}
-        <Text style={styles.sectionTitle}>Health Tips</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tipsScroll}>
-          <View style={styles.tipCard}>
-            <Image
-              source={{ uri: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b' }}
-              style={styles.tipImage}
-            />
-            <View style={styles.tipContent}>
-              <Text style={styles.tipTitle}>Hydration Tips</Text>
-              <Text style={styles.tipText}>Stay healthy by drinking enough water daily</Text>
-            </View>
-          </View>
+    <View style={styles.divider} />
 
-          <View style={styles.tipCard}>
-            <Image
-              source={{ uri: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b' }}
-              style={styles.tipImage}
-            />
-            <View style={styles.tipContent}>
-              <Text style={styles.tipTitle}>Exercise Routine</Text>
-              <Text style={styles.tipText}>Simple exercises for better health</Text>
-            </View>
-          </View>
-        </ScrollView>
+    <View style={styles.availabilityContainer}>
+      <View style={styles.priceContainer}>
+        <Text style={styles.priceLabel}>Gharama ya Ushauri</Text>
+        <Text style={styles.price}>Tsh 35,000 / kikao</Text>
+      </View>
+
+     <View style={styles.availability}>
+        {['Jum', 'Jtt', 'Jnn', 'Alh', 'Ijm'].map((day, index) => {
+          const jsDay = new Date().getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+          const currentDayIndex = { 1: 0, 2: 1, 3: 2, 4: 3, 5: 4 }[jsDay]; // Map Mon–Fri
+
+          const isActive = index === currentDayIndex;
+
+          return (
+            <TouchableOpacity
+              key={index}
+              style={[styles.day, isActive && styles.activeDay]}
+              onPress={() => Haptics.selectionAsync()}
+            >
+              <Text style={[styles.dayText, isActive && styles.activeDayText]}>
+                {day}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+ 
+    </View>
+
+    <TouchableOpacity
+      style={styles.bookButton}
+      onPress={() => handlePress(appointmentButtonRoute)}
+    >
+      <Text style={styles.bookButtonText}>{appointmentButtonText}</Text>
+      <Ionicons name="calendar-outline" size={18} color="white" />
+    </TouchableOpacity>
+  </Animated.View>
+
+  {/* Notification / Info Banner */}
+  <View style={styles.infoBanner}>
+    <Ionicons name="information-circle-outline" size={20} color="#1E40AF" style={{ marginRight: 8 }} />
+    <Text style={styles.infoText}>
+      Karibu kwenye <Text style={{ fontWeight: 'bold' }}>Shifaa</Text> — msaidizi wako wa kiafya kwa lugha ya Kiswahili.
+      Uliza dalili zako, pata ushauri wa kitaalamu, na uweke miadi na madaktari kwa urahisi.
+    </Text>
+  </View>
+
+  {/* Quick Access */}
+  <Text style={styles.sectionTitle}>Huduma za Haraka</Text>
+  <View style={styles.quickAccessRow}>
+    <TouchableOpacity style={styles.quickAccessCard} onPress={() => handlePress('/shifaa')}>
+      <View style={styles.quickAccessIcon}>
+        <Ionicons name="chatbubble-ellipses" size={28} color="#4E8CFF" />
+      </View>
+      <Text style={styles.quickAccessTitle}>Ongea na Daktari AI</Text>
+      <Text style={styles.quickAccessSubtitle}>Msaada masaa 24</Text>
+    </TouchableOpacity>
+
+    <TouchableOpacity style={styles.quickAccessCard} onPress={() => handlePress('/pharmacy')}>
+      <View style={[styles.quickAccessIcon, { backgroundColor: '#D1FAE5' }]}>
+        <FontAwesome5 name="clinic-medical" size={24} color="#10B981" />
+      </View>
+      <Text style={styles.quickAccessTitle}>Tafuta Duka la Dawa</Text>
+      <Text style={styles.quickAccessSubtitle}>Karibu nawe</Text>
+    </TouchableOpacity>
+  </View>
+</ScrollView>
+
+{/* Vidokezo vya Afya */}
+<Text style={[styles.sectionTitle, { width: '95%', alignSelf: 'center' }]}>
+  Vidokezo vya Afya
+</Text>
+<ScrollView
+  horizontal
+  showsHorizontalScrollIndicator={false}
+  style={[styles.tipsScroll, { width: '95%', alignSelf: 'center' }]}
+>
+  <View style={styles.tipCard}>
+    <Image
+      source={{ uri: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b' }}
+      style={styles.tipImage}
+    />
+    <View style={styles.tipContent}>
+      <Text style={styles.tipTitle}>Maji kwa Afya</Text>
+      <Text style={styles.tipText}>
+        Kunywa angalau glasi 8 za maji kila siku kwa afya bora.
+      </Text>
+    </View>
+  </View>
+
+  <View style={styles.tipCard}>
+    <Image
+      source={{ uri: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b' }}
+      style={styles.tipImage}
+    />
+    <View style={styles.tipContent}>
+      <Text style={styles.tipTitle}>Mazoezi ya Mwili</Text>
+      <Text style={styles.tipText}>
+        Fanya mazoezi mepesi kila siku ili kuboresha mzunguko wa damu na nguvu.
+      </Text>
+    </View>
+  </View>
+
+  <View style={styles.tipCard}>
+    <Image
+      source={{ uri: 'https://images.unsplash.com/photo-1588776814546-1ffcf47267d7' }}
+      style={styles.tipImage}
+    />
+    <View style={styles.tipContent}>
+      <Text style={styles.tipTitle}>Lishe Bora</Text>
+      <Text style={styles.tipText}>
+        Kula vyakula vyenye vitamini na protini kwa afya njema.
+      </Text>
+    </View>
+  </View>
+</ScrollView>
+
+
       </ScrollView>
 
       {/* Bottom Navigation */}
@@ -233,6 +270,20 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F1F5F9',
     zIndex: 100,
   },
+  infoBanner: {
+  flexDirection: 'row',
+  backgroundColor: '#DBEAFE',
+  padding: 12,
+  borderRadius: 12,
+  marginBottom: 20,
+  alignItems: 'flex-start',
+},
+infoText: {
+  flex: 1,
+  fontSize: 14,
+  color: '#1E40AF',
+},
+
   profileContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -266,8 +317,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#EF4444',
   },
   container: {
-    padding: 24,
-    paddingTop: 120,
+    padding: 10,
+    paddingTop: 5,
     paddingBottom: 100,
   },
   card: {

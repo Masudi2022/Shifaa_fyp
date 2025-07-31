@@ -9,7 +9,9 @@ import {
   ActivityIndicator,
   StatusBar,
   Platform,
-  Alert
+  Alert,
+  Modal,
+  TextInput
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -25,6 +27,11 @@ const Appointments = () => {
   const { refreshAccessToken } = useContext(AuthContext);
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Notes Modal State
+  const [notesModalVisible, setNotesModalVisible] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [notesText, setNotesText] = useState('');
 
   const fetchAppointments = async () => {
     try {
@@ -63,6 +70,20 @@ const Appointments = () => {
     }
   };
 
+  // Open Notes Modal
+  const openNotesModal = (appointment) => {
+    setSelectedAppointment(appointment);
+    setNotesText(appointment.notes || '');
+    setNotesModalVisible(true);
+  };
+
+  // Save Notes
+  const saveNotes = () => {
+    if (!selectedAppointment) return;
+    updateAppointment(selectedAppointment.id, { notes: notesText });
+    setNotesModalVisible(false);
+  };
+
   const renderAppointment = ({ item }) => (
     <View style={styles.card}>
       <Text style={styles.title}>Patient: {item.user_name || 'Unknown'}</Text>
@@ -73,6 +94,12 @@ const Appointments = () => {
       <Text style={styles.status}>
         Status: {item.status} | {item.is_confirmed ? 'Confirmed' : 'Not Confirmed'}
       </Text>
+
+      {item.notes ? (
+        <Text style={styles.notes}>📝 Notes: {item.notes}</Text>
+      ) : (
+        <Text style={styles.noNotes}>No notes yet</Text>
+      )}
 
       <View style={styles.actionRow}>
         <TouchableOpacity
@@ -102,6 +129,13 @@ const Appointments = () => {
         >
           <Text style={styles.buttonText}>Completed</Text>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.button, { backgroundColor: '#6B7280' }]}
+          onPress={() => openNotesModal(item)}
+        >
+          <Text style={styles.buttonText}>Add/Edit Notes</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -128,6 +162,35 @@ const Appointments = () => {
           contentContainerStyle={styles.listContainer}
         />
       )}
+
+      {/* Notes Modal */}
+      <Modal
+        visible={notesModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setNotesModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Add/Edit Notes</Text>
+            <TextInput
+              style={styles.notesInput}
+              placeholder="Write notes here..."
+              value={notesText}
+              onChangeText={setNotesText}
+              multiline
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={[styles.modalButton, { backgroundColor: '#10B981' }]} onPress={saveNotes}>
+                <Text style={styles.buttonText}>Save</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.modalButton, { backgroundColor: '#EF4444' }]} onPress={() => setNotesModalVisible(false)}>
+                <Text style={styles.buttonText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -189,6 +252,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#444',
   },
+  notes: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#16A34A',
+    fontStyle: 'italic',
+  },
+  noNotes: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#9CA3AF',
+    fontStyle: 'italic',
+  },
   actionRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -204,5 +279,41 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 12,
     fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 10,
+    width: '85%',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 12,
+    color: '#007BFF',
+  },
+  notesInput: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    padding: 10,
+    minHeight: 80,
+    textAlignVertical: 'top',
+    marginBottom: 12,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  modalButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 6,
   },
 });
