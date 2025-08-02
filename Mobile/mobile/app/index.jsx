@@ -241,7 +241,7 @@ export default function Home() {
           <Text style={styles.navText}>Pharmacy</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.navItem}>
+        <TouchableOpacity style={styles.navItem} onPress={() => handlePress('/profile')}>
           <Ionicons name="person" size={24} color="#94A3B8" />
           <Text style={styles.navText}>Profile</Text>
         </TouchableOpacity>

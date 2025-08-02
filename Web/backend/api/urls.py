@@ -7,7 +7,7 @@ from diagnosis.views import (
     get_chat_sessions
 )
 from pharmacy.views import pharmacy_list
-from account.views import RegisterView, CustomTokenObtainPairView
+from account.views import RegisterView, CustomTokenObtainPairView, logout_view, update_user_profile
 from rest_framework_simplejwt.views import TokenRefreshView
 from appointment.views import *
 
@@ -26,6 +26,8 @@ urlpatterns = [
     path('register/', RegisterView.as_view(), name='register'),
     path('login/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+     path('logout/', logout_view, name='logout'),
+      path('update-profile/', update_user_profile, name='update-profile'),
 
     path('appointment/book/', book_appointment, name='book-appointment'),
     path('my-appointments/', list_user_appointments, name='my-appointments'),
