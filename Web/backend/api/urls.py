@@ -35,6 +35,8 @@ urlpatterns = [
     path('update-status/<int:appointment_id>/', update_appointment_status, name='update-appointment-status'),
     path('appointment/<int:appointment_id>/delete/', delete_appointment, name='delete-appointment'),
     path('appointment/<int:appointment_id>/update-status/', update_appointment_status, name='update-appointment-status'),
+    path('appointments/<int:appointment_id>/', appointment_detail, name='appointment-detail'),
+
 
 
 
@@ -42,7 +44,11 @@ urlpatterns = [
     path('availability/', doctor_availability_list_create, name='availability-list-create'),
     path('availability/<int:pk>/', doctor_availability_detail, name='availability-detail'),
     path('availability/available-doctors/', available_doctors, name='available-doctors'),
+
+
+    path('appointments/check-reminder/', check_upcoming_appointment, name='check_appointment_reminder'),
 ]
+
 
 
 

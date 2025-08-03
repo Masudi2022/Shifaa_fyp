@@ -152,8 +152,11 @@ def update_appointment_status(request, appointment_id):
         appointment.notes = request.data['notes']
 
     appointment.save()
+    print(request.data)
+
 
     return Response({'detail': 'Appointment updated successfully'}, status=status.HTTP_200_OK)
+
 
 
 
@@ -264,3 +267,53 @@ def available_doctors(request):
 
     serializer = DoctorAvailabilitySerializer(queryset, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+from datetime import timedelta
+from django.utils import timezone
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from .models import Appointment
+from django.utils import timezone
+from datetime import datetime
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def check_upcoming_appointment(request):
+    now = timezone.localtime()
+    ten_minutes_later = now + timedelta(minutes=10)
+
+    # Fetch the first upcoming appointment
+    appointment = Appointment.objects.filter(
+        user=request.user,
+        date=now.date(),
+        time__gte=now.time(),
+        time__lte=ten_minutes_later.time(),
+        is_confirmed=True,
+        status='Pending'
+    ).order_by('time').first()
+
+    if appointment:
+        return Response({
+            "upcoming": True,
+            "id": appointment.id,  # ✅ Include ID here
+            "message": f"You have an appointment with Dr. {appointment.doctor.full_name} at {appointment.time.strftime('%H:%M')} today."
+        })
+    else:
+        return Response({
+            "upcoming": False,
+            "message": "No upcoming appointment in the next 10 minutes."
+        })
+
+
+
+@api_view(['GET'])
+def appointment_detail(request, appointment_id):
+    try:
+        appointment = Appointment.objects.get(pk=appointment_id)
+        serializer = AppointmentSerializer(appointment)
+        return Response(serializer.data)
+    except Appointment.DoesNotExist:
+        return Response({"error": "Not found"}, status=404)

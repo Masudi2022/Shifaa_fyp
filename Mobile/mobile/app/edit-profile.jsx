@@ -10,7 +10,10 @@ import {
   SafeAreaView,
   Platform,
   StatusBar,
-  ScrollView
+  ScrollView,
+  KeyboardAvoidingView,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
 import { useRouter } from 'expo-router';
@@ -24,35 +27,49 @@ const EditProfile = () => {
   const [fullName, setFullName] = useState(user?.full_name || '');
   const [phone, setPhone] = useState(user?.phone || '');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSave = async () => {
-    if (!fullName || !phone) {
-      Alert.alert('Validation Error', 'Full name and phone are required.');
+    if (password) {
+      if (password.length < 6) {
+        Alert.alert('Validation Error', 'Password must be at least 6 characters.');
+        return;
+      }
+      if (password !== confirmPassword) {
+        Alert.alert('Validation Error', 'Passwords do not match.');
+        return;
+      }
+    }
+
+    const payload = {};
+    
+    if (fullName.trim()) {
+      payload.full_name = fullName.trim();
+    }
+    if (phone.trim()) {
+      payload.phone = phone.trim();
+    }
+    if (password) {
+      payload.password = password;
+    }
+
+    if (Object.keys(payload).length === 0) {
+      Alert.alert('No Changes', 'Please enter at least one field to update.');
       return;
     }
 
     setLoading(true);
     try {
       const token = await refreshAccessToken();
-
-      await axios.put(
-        `${BASE_URL}/update-profile/`,
-        {
-          full_name: fullName,
-          phone,
-          ...(password ? { password } : {}),
+      await axios.put(`${BASE_URL}/update-profile/`, payload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      });
 
       Alert.alert('Success', 'Profile updated successfully!');
       router.back();
-
     } catch (error) {
       console.error('Profile update error:', error.response?.data || error.message);
       Alert.alert('Error', 'Could not update profile. Please try again.');
@@ -63,64 +80,83 @@ const EditProfile = () => {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Edit Profile</Text>
-      </View>
-
-      <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.formContainer}>
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Full Name</Text>
-            <TextInput
-              placeholder="Enter your full name"
-              value={fullName}
-              onChangeText={setFullName}
-              style={styles.input}
-              placeholderTextColor="#999"
-            />
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+              <Text style={styles.backButtonText}>←</Text>
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Edit Profile</Text>
           </View>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Phone Number</Text>
-            <TextInput
-              placeholder="Enter your phone number"
-              value={phone}
-              onChangeText={setPhone}
-              keyboardType="phone-pad"
-              style={styles.input}
-              placeholderTextColor="#999"
-            />
-          </View>
+          <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+            <View style={styles.formContainer}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Full Name (optional)</Text>
+                <TextInput
+                  placeholder="Enter your full name"
+                  value={fullName}
+                  onChangeText={setFullName}
+                  style={styles.input}
+                  placeholderTextColor="#999"
+                />
+              </View>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>New Password (optional)</Text>
-            <TextInput
-              placeholder="Enter new password"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              style={styles.input}
-              placeholderTextColor="#999"
-            />
-          </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Phone Number (optional)</Text>
+                <TextInput
+                  placeholder="Enter your phone number"
+                  value={phone}
+                  onChangeText={setPhone}
+                  keyboardType="phone-pad"
+                  style={styles.input}
+                  placeholderTextColor="#999"
+                />
+              </View>
 
-          <TouchableOpacity
-            style={styles.button}
-            onPress={handleSave}
-            disabled={loading}
-            activeOpacity={0.8}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Save Changes</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>New Password (optional)</Text>
+                <TextInput
+                  placeholder="Enter new password"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry
+                  style={styles.input}
+                  placeholderTextColor="#999"
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Confirm Password</Text>
+                <TextInput
+                  placeholder="Confirm new password"
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry
+                  style={styles.input}
+                  placeholderTextColor="#999"
+                />
+              </View>
+
+              <TouchableOpacity
+                style={styles.button}
+                onPress={handleSave}
+                disabled={loading}
+                activeOpacity={0.8}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.buttonText}>Save Changes</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </TouchableWithoutFeedback>
     </SafeAreaView>
   );
 };

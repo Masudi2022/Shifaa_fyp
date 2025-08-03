@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useRef } from 'react';
+import React, { useContext, useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -12,8 +12,11 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AuthContext } from '../context/AuthContext';
-import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
+import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+import { BASE_URL } from '@env';
 
 export default function Home() {
   const { user } = useContext(AuthContext);
@@ -21,6 +24,9 @@ export default function Home() {
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideUpAnim = useRef(new Animated.Value(50)).current;
+  const [reminderMessage, setReminderMessage] = useState(null);
+  const [reminderTimestamp, setReminderTimestamp] = useState(null);
+  const [appointmentInfo, setAppointmentInfo] = useState(null);
 
   useEffect(() => {
     if (!user) {
@@ -43,6 +49,48 @@ export default function Home() {
       }),
     ]).start();
   }, []);
+
+ useEffect(() => {
+  const fetchReminder = async () => {
+    try {
+      const token = await AsyncStorage.getItem('access_token');
+      const response = await axios.get(`${BASE_URL}/appointments/check-reminder/`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = response.data;
+
+      if (data.upcoming || data.missed) {
+        setReminderMessage(data.message);
+
+        // ✅ Safely include appointment ID and other info
+        setAppointmentInfo({
+          id: data.id ?? null, // fallback to null if not present
+          isMissed: data.missed || false,
+          minutesLate: data.minutes_late ?? null,
+        });
+
+        setReminderTimestamp(new Date());
+      } else {
+        setReminderMessage(null);
+        setAppointmentInfo(null);
+        setReminderTimestamp(null);
+      }
+    } catch (error) {
+      console.error("Reminder fetch error:", error.response?.data || error.message);
+      setReminderMessage(null);
+      setAppointmentInfo(null);
+      setReminderTimestamp(null);
+    }
+  };
+
+  fetchReminder();
+  const interval = setInterval(fetchReminder, 60000); // every minute
+  return () => clearInterval(interval);
+}, []);
+
 
   const handlePress = (route) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -83,145 +131,114 @@ export default function Home() {
       </View>
 
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-  
-  {/* Doctor Card */}
-  <Animated.View style={[styles.card, { opacity: fadeAnim, transform: [{ translateY: slideUpAnim }] }]}>
-    <View style={styles.doctorHeader}>
-      <Image
-        source={{ uri: 'https://img.freepik.com/free-photo/doctor-with-his-arms-crossed-white-background_1368-5790.jpg' }}
-        style={styles.doctorImage}
-      />
-      <View style={styles.doctorInfo}>
-        <Text style={styles.doctorName}>Dkt. Johan Jenson</Text>
-        <Text style={styles.specialty}>Daktari wa Magonjwa Mbalimbali</Text>
-        <View style={styles.ratingContainer}>
-          <Ionicons name="star" size={16} color="#FFD700" />
-          <Text style={styles.ratingText}>4.9 (watu 128)</Text>
+        {/* Doctor Card */}
+        <Animated.View style={[styles.card, { opacity: fadeAnim, transform: [{ translateY: slideUpAnim }] }]}>
+          <View style={styles.doctorHeader}>
+            <Image
+              source={{ uri: 'https://img.freepik.com/free-photo/doctor-with-his-arms-crossed-white-background_1368-5790.jpg' }}
+              style={styles.doctorImage}
+            />
+            <View style={styles.doctorInfo}>
+              <Text style={styles.doctorName}>Dkt. Johan Jenson</Text>
+              <Text style={styles.specialty}>Daktari wa Magonjwa Mbalimbali</Text>
+              <View style={styles.ratingContainer}>
+                <Ionicons name="star" size={16} color="#FFD700" />
+                <Text style={styles.ratingText}>4.9 (watu 128)</Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.divider} />
+
+          <View style={styles.availabilityContainer}>
+            <View style={styles.priceContainer}>
+              <Text style={styles.priceLabel}>Gharama ya Ushauri</Text>
+              <Text style={styles.price}>Tsh 35,000 / kikao</Text>
+            </View>
+
+            <View style={styles.availability}>
+              {['Jum', 'Jtt', 'Jnn', 'Alh', 'Ijm'].map((day, index) => {
+                const jsDay = new Date().getDay();
+                const currentDayIndex = { 1: 0, 2: 1, 3: 2, 4: 3, 5: 4 }[jsDay];
+                const isActive = index === currentDayIndex;
+
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    style={[styles.day, isActive && styles.activeDay]}
+                    onPress={() => Haptics.selectionAsync()}
+                  >
+                    <Text style={[styles.dayText, isActive && styles.activeDayText]}>
+                      {day}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={styles.bookButton}
+            onPress={() => handlePress(appointmentButtonRoute)}
+          >
+            <Text style={styles.bookButtonText}>{appointmentButtonText}</Text>
+            <Ionicons name="calendar-outline" size={18} color="white" />
+          </TouchableOpacity>
+        </Animated.View>
+
+        {/* Info Banner */}
+        <View style={styles.infoBanner}>
+          <Ionicons name="information-circle-outline" size={20} color="#1E40AF" style={{ marginRight: 8 }} />
+          {reminderMessage ? (
+            (() => {
+              const now = new Date();
+              const diffInMinutes = reminderTimestamp
+                ? Math.floor((now - new Date(reminderTimestamp)) / 60000)
+                : 0;
+
+              const isClickable = appointmentInfo &&
+                !appointmentInfo.isMissed &&
+                diffInMinutes <= 10;
+
+              return isClickable ? (
+                <TouchableOpacity onPress={() => router.push(`/appointment/${appointmentInfo.id}`)}>
+                <Text style={{ color: '#DC2626', fontWeight: 'bold' }}>
+                  {reminderMessage}
+                </Text>
+              </TouchableOpacity>
+
+              ) : (
+                <Text style={[styles.infoText, { fontWeight: 'bold', color: '#DC2626' }]}>
+                  {reminderMessage}
+                </Text>
+              );
+            })()
+          ) : (
+            <Text style={styles.infoText}>
+              Karibu kwenye <Text style={{ fontWeight: 'bold' }}>Shifaa</Text> — msaidizi wako wa kiafya kwa lugha ya Kiswahili. Uliza dalili zako, pata ushauri wa kitaalamu, na uweke miadi na madaktari kwa urahisi.
+            </Text>
+          )}
         </View>
-      </View>
-    </View>
 
-    <View style={styles.divider} />
+        {/* Quick Access */}
+        <Text style={styles.sectionTitle}>Huduma za Haraka</Text>
+        <View style={styles.quickAccessRow}>
+          <TouchableOpacity style={styles.quickAccessCard} onPress={() => handlePress('/shifaa')}>
+            <View style={styles.quickAccessIcon}>
+              <Ionicons name="chatbubble-ellipses" size={28} color="#4E8CFF" />
+            </View>
+            <Text style={styles.quickAccessTitle}>Ongea na Daktari AI</Text>
+            <Text style={styles.quickAccessSubtitle}>Msaada masaa 24</Text>
+          </TouchableOpacity>
 
-    <View style={styles.availabilityContainer}>
-      <View style={styles.priceContainer}>
-        <Text style={styles.priceLabel}>Gharama ya Ushauri</Text>
-        <Text style={styles.price}>Tsh 35,000 / kikao</Text>
-      </View>
-
-     <View style={styles.availability}>
-        {['Jum', 'Jtt', 'Jnn', 'Alh', 'Ijm'].map((day, index) => {
-          const jsDay = new Date().getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
-          const currentDayIndex = { 1: 0, 2: 1, 3: 2, 4: 3, 5: 4 }[jsDay]; // Map Mon–Fri
-
-          const isActive = index === currentDayIndex;
-
-          return (
-            <TouchableOpacity
-              key={index}
-              style={[styles.day, isActive && styles.activeDay]}
-              onPress={() => Haptics.selectionAsync()}
-            >
-              <Text style={[styles.dayText, isActive && styles.activeDayText]}>
-                {day}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
- 
-    </View>
-
-    <TouchableOpacity
-      style={styles.bookButton}
-      onPress={() => handlePress(appointmentButtonRoute)}
-    >
-      <Text style={styles.bookButtonText}>{appointmentButtonText}</Text>
-      <Ionicons name="calendar-outline" size={18} color="white" />
-    </TouchableOpacity>
-  </Animated.View>
-
-  {/* Notification / Info Banner */}
-  <View style={styles.infoBanner}>
-    <Ionicons name="information-circle-outline" size={20} color="#1E40AF" style={{ marginRight: 8 }} />
-    <Text style={styles.infoText}>
-      Karibu kwenye <Text style={{ fontWeight: 'bold' }}>Shifaa</Text> — msaidizi wako wa kiafya kwa lugha ya Kiswahili.
-      Uliza dalili zako, pata ushauri wa kitaalamu, na uweke miadi na madaktari kwa urahisi.
-    </Text>
-  </View>
-
-  {/* Quick Access */}
-  <Text style={styles.sectionTitle}>Huduma za Haraka</Text>
-  <View style={styles.quickAccessRow}>
-    <TouchableOpacity style={styles.quickAccessCard} onPress={() => handlePress('/shifaa')}>
-      <View style={styles.quickAccessIcon}>
-        <Ionicons name="chatbubble-ellipses" size={28} color="#4E8CFF" />
-      </View>
-      <Text style={styles.quickAccessTitle}>Ongea na Daktari AI</Text>
-      <Text style={styles.quickAccessSubtitle}>Msaada masaa 24</Text>
-    </TouchableOpacity>
-
-    <TouchableOpacity style={styles.quickAccessCard} onPress={() => handlePress('/pharmacy')}>
-      <View style={[styles.quickAccessIcon, { backgroundColor: '#D1FAE5' }]}>
-        <FontAwesome5 name="clinic-medical" size={24} color="#10B981" />
-      </View>
-      <Text style={styles.quickAccessTitle}>Tafuta Duka la Dawa</Text>
-      <Text style={styles.quickAccessSubtitle}>Karibu nawe</Text>
-    </TouchableOpacity>
-  </View>
-</ScrollView>
-
-{/* Vidokezo vya Afya */}
-<Text style={[styles.sectionTitle, { width: '95%', alignSelf: 'center' }]}>
-  Vidokezo vya Afya
-</Text>
-<ScrollView
-  horizontal
-  showsHorizontalScrollIndicator={false}
-  style={[styles.tipsScroll, { width: '95%', alignSelf: 'center' }]}
->
-  <View style={styles.tipCard}>
-    <Image
-      source={{ uri: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b' }}
-      style={styles.tipImage}
-    />
-    <View style={styles.tipContent}>
-      <Text style={styles.tipTitle}>Maji kwa Afya</Text>
-      <Text style={styles.tipText}>
-        Kunywa angalau glasi 8 za maji kila siku kwa afya bora.
-      </Text>
-    </View>
-  </View>
-
-  <View style={styles.tipCard}>
-    <Image
-      source={{ uri: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b' }}
-      style={styles.tipImage}
-    />
-    <View style={styles.tipContent}>
-      <Text style={styles.tipTitle}>Mazoezi ya Mwili</Text>
-      <Text style={styles.tipText}>
-        Fanya mazoezi mepesi kila siku ili kuboresha mzunguko wa damu na nguvu.
-      </Text>
-    </View>
-  </View>
-
-  <View style={styles.tipCard}>
-    <Image
-      source={{ uri: 'https://images.unsplash.com/photo-1588776814546-1ffcf47267d7' }}
-      style={styles.tipImage}
-    />
-    <View style={styles.tipContent}>
-      <Text style={styles.tipTitle}>Lishe Bora</Text>
-      <Text style={styles.tipText}>
-        Kula vyakula vyenye vitamini na protini kwa afya njema.
-      </Text>
-    </View>
-  </View>
-</ScrollView>
-
-
+          <TouchableOpacity style={styles.quickAccessCard} onPress={() => handlePress('/pharmacy')}>
+            <View style={[styles.quickAccessIcon, { backgroundColor: '#D1FAE5' }]}>
+              <FontAwesome5 name="clinic-medical" size={24} color="#10B981" />
+            </View>
+            <Text style={styles.quickAccessTitle}>Tafuta Duka la Dawa</Text>
+            <Text style={styles.quickAccessSubtitle}>Karibu nawe</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
 
       {/* Bottom Navigation */}
@@ -237,7 +254,7 @@ export default function Home() {
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.navItem} onPress={() => handlePress('/pharmacy')}>
-          <MaterialCommunityIcons name="pharmacy" size={24} color="#94A3B8" />
+          <FontAwesome5 name="clinic-medical" size={24} color="#10B981" />
           <Text style={styles.navText}>Pharmacy</Text>
         </TouchableOpacity>
 
@@ -249,6 +266,7 @@ export default function Home() {
     </View>
   );
 }
+
 
 
 

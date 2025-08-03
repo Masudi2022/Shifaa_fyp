@@ -1,6 +1,10 @@
 from django.db import models
 from django.contrib.postgres.fields import ArrayField  # ✅ Correct import
 from account.models import CustomUser
+from django.utils.timezone import localtime
+
+now = localtime()  # This gives time in Africa/Dar_es_Salaam
+
 import uuid
 
 import uuid

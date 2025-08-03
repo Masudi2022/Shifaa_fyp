@@ -28,7 +28,6 @@ const Appointments = () => {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Notes Modal State
   const [notesModalVisible, setNotesModalVisible] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [notesText, setNotesText] = useState('');
@@ -61,23 +60,22 @@ const Appointments = () => {
   const updateAppointment = async (id, updates) => {
     try {
       const token = await AsyncStorage.getItem('access_token');
-      await axios.patch(`${baseUrl}/appointment/${id}/update-status/`, updates, {
+      const response = await axios.patch(`${baseUrl}/appointment/${id}/update-status/`, updates, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      fetchAppointments();
+      console.log('Update response:', response.data);
+      await fetchAppointments(); // Await to ensure state refresh
     } catch (error) {
       Alert.alert('Error', error.response?.data?.detail || error.message);
     }
   };
 
-  // Open Notes Modal
   const openNotesModal = (appointment) => {
     setSelectedAppointment(appointment);
     setNotesText(appointment.notes || '');
     setNotesModalVisible(true);
   };
 
-  // Save Notes
   const saveNotes = () => {
     if (!selectedAppointment) return;
     updateAppointment(selectedAppointment.id, { notes: notesText });
@@ -104,7 +102,11 @@ const Appointments = () => {
       <View style={styles.actionRow}>
         <TouchableOpacity
           style={[styles.button, { backgroundColor: item.is_confirmed ? '#EF4444' : '#10B981' }]}
-          onPress={() => updateAppointment(item.id, { is_confirmed: !item.is_confirmed })}
+          onPress={async () => {
+            const newValue = !item.is_confirmed;
+            console.log('Toggling confirmation to:', newValue);
+            await updateAppointment(item.id, { is_confirmed: newValue });
+          }}
         >
           <Text style={styles.buttonText}>{item.is_confirmed ? 'Unconfirm' : 'Confirm'}</Text>
         </TouchableOpacity>
