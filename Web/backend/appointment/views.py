@@ -283,7 +283,7 @@ from datetime import datetime
 @permission_classes([IsAuthenticated])
 def check_upcoming_appointment(request):
     now = timezone.localtime()
-    ten_minutes_later = now + timedelta(minutes=10)
+    ten_minutes_later = now + timedelta(minutes=40)
 
     # Fetch the first upcoming appointment
     appointment = Appointment.objects.filter(

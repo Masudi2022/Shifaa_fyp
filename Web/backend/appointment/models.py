@@ -51,9 +51,6 @@ class Appointment(models.Model):
         default='Pending', null=True, blank=True
     )
 
-    def __str__(self):
-        return f"{self.user} with Dr. {self.doctor} on {self.date} at {self.time} [{self.status}]"
-  # Doctor's post-visit notes
 
     class Meta:
         unique_together = ['doctor', 'date', 'time']  # Avoid double bookings

@@ -13,7 +13,7 @@ import {
   Modal,
   TextInput
 } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { useRouter } from 'expo-router';
@@ -104,7 +104,6 @@ const Appointments = () => {
           style={[styles.button, { backgroundColor: item.is_confirmed ? '#EF4444' : '#10B981' }]}
           onPress={async () => {
             const newValue = !item.is_confirmed;
-            console.log('Toggling confirmation to:', newValue);
             await updateAppointment(item.id, { is_confirmed: newValue });
           }}
         >
@@ -144,7 +143,11 @@ const Appointments = () => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      {/* Header with Back and Availability Icon */}
       <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.push('/')} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="#fff" />
+        </TouchableOpacity>
         <Text style={styles.headerText}>My Appointments</Text>
         <TouchableOpacity
           onPress={() => router.push('/availability')}

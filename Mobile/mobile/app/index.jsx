@@ -9,14 +9,17 @@ import {
   Animated,
   Easing,
   ActivityIndicator,
+  Dimensions
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AuthContext } from '../context/AuthContext';
-import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
+import { Ionicons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { BASE_URL } from '@env';
+
+const { width } = Dimensions.get('window');
 
 export default function Home() {
   const { user } = useContext(AuthContext);
@@ -27,10 +30,13 @@ export default function Home() {
   const [reminderMessage, setReminderMessage] = useState(null);
   const [reminderTimestamp, setReminderTimestamp] = useState(null);
   const [appointmentInfo, setAppointmentInfo] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (!user) {
       router.replace('/login');
+    } else {
+      setIsLoading(false);
     }
   }, [user]);
 
@@ -50,57 +56,54 @@ export default function Home() {
     ]).start();
   }, []);
 
- useEffect(() => {
-  const fetchReminder = async () => {
-    try {
-      const token = await AsyncStorage.getItem('access_token');
-      const response = await axios.get(`${BASE_URL}/appointments/check-reminder/`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const data = response.data;
-
-      if (data.upcoming || data.missed) {
-        setReminderMessage(data.message);
-
-        // ✅ Safely include appointment ID and other info
-        setAppointmentInfo({
-          id: data.id ?? null, // fallback to null if not present
-          isMissed: data.missed || false,
-          minutesLate: data.minutes_late ?? null,
+  useEffect(() => {
+    const fetchReminder = async () => {
+      try {
+        const token = await AsyncStorage.getItem('access_token');
+        const response = await axios.get(`${BASE_URL}/appointments/check-reminder/`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         });
 
-        setReminderTimestamp(new Date());
-      } else {
+        const data = response.data;
+
+        if (data.upcoming || data.missed) {
+          setReminderMessage(data.message);
+          setAppointmentInfo({
+            id: data.id ?? null,
+            isMissed: data.missed || false,
+            minutesLate: data.minutes_late ?? null,
+          });
+          setReminderTimestamp(new Date());
+        } else {
+          setReminderMessage(null);
+          setAppointmentInfo(null);
+          setReminderTimestamp(null);
+        }
+      } catch (error) {
+        console.error("Reminder fetch error:", error.response?.data || error.message);
         setReminderMessage(null);
         setAppointmentInfo(null);
         setReminderTimestamp(null);
       }
-    } catch (error) {
-      console.error("Reminder fetch error:", error.response?.data || error.message);
-      setReminderMessage(null);
-      setAppointmentInfo(null);
-      setReminderTimestamp(null);
-    }
-  };
+    };
 
-  fetchReminder();
-  const interval = setInterval(fetchReminder, 60000); // every minute
-  return () => clearInterval(interval);
-}, []);
-
+    fetchReminder();
+    const interval = setInterval(fetchReminder, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handlePress = (route) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push(route);
   };
 
-  if (!user) {
+  if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#4E8CFF" />
+        <Text style={styles.loadingText}>Inapakia...</Text>
       </View>
     );
   }
@@ -108,7 +111,7 @@ export default function Home() {
   const role = user?.role?.toLowerCase();
   const isDoctor = role === 'doctor';
 
-  const appointmentButtonText = isDoctor ? 'Appointments' : 'Book Appointment';
+  const appointmentButtonText = isDoctor ? 'Angalia Miadi' : 'Panga Miadi';
   const appointmentButtonRoute = isDoctor ? '/appointments' : '/booking';
 
   return (
@@ -120,19 +123,34 @@ export default function Home() {
             source={{ uri: 'https://randomuser.me/api/portraits/men/1.jpg' }}
             style={styles.profileImage}
           />
-          <Text style={styles.subHeader}>
-            Karibu {user?.full_name || 'Mtumiaji'}, Tunakusikiliza na kukusaidia
-          </Text>
+          <View>
+            <Text style={styles.welcomeText}>Karibu tena,</Text>
+            <Text style={styles.userName}>{user?.full_name || 'Mteja'}</Text>
+          </View>
         </View>
-        <TouchableOpacity style={styles.notificationButton}>
+        <TouchableOpacity 
+          style={styles.notificationButton}
+          onPress={() => handlePress('/notifications')}
+        >
           <Ionicons name="notifications-outline" size={24} color="#4E8CFF" />
           <View style={styles.notificationBadge} />
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Doctor Card */}
-        <Animated.View style={[styles.card, { opacity: fadeAnim, transform: [{ translateY: slideUpAnim }] }]}>
+        <Animated.View 
+          style={[
+            styles.card, 
+            { 
+              opacity: fadeAnim, 
+              transform: [{ translateY: slideUpAnim }] 
+            }
+          ]}
+        >
           <View style={styles.doctorHeader}>
             <Image
               source={{ uri: 'https://img.freepik.com/free-photo/doctor-with-his-arms-crossed-white-background_1368-5790.jpg' }}
@@ -140,10 +158,10 @@ export default function Home() {
             />
             <View style={styles.doctorInfo}>
               <Text style={styles.doctorName}>Dkt. Johan Jenson</Text>
-              <Text style={styles.specialty}>Daktari wa Magonjwa Mbalimbali</Text>
+              <Text style={styles.specialty}>Daktari wa Magonjwa ya Ndani</Text>
               <View style={styles.ratingContainer}>
                 <Ionicons name="star" size={16} color="#FFD700" />
-                <Text style={styles.ratingText}>4.9 (watu 128)</Text>
+                <Text style={styles.ratingText}>4.9 (tathmini 128)</Text>
               </View>
             </View>
           </View>
@@ -157,7 +175,7 @@ export default function Home() {
             </View>
 
             <View style={styles.availability}>
-              {['Jum', 'Jtt', 'Jnn', 'Alh', 'Ijm'].map((day, index) => {
+              {['Jumatatu', 'Jumanne', 'Jumatano', 'Alhamisi', 'Ijumaa'].map((day, index) => {
                 const jsDay = new Date().getDay();
                 const currentDayIndex = { 1: 0, 2: 1, 3: 2, 4: 3, 5: 4 }[jsDay];
                 const isActive = index === currentDayIndex;
@@ -169,7 +187,7 @@ export default function Home() {
                     onPress={() => Haptics.selectionAsync()}
                   >
                     <Text style={[styles.dayText, isActive && styles.activeDayText]}>
-                      {day}
+                      {day.substring(0, 3)}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -187,8 +205,16 @@ export default function Home() {
         </Animated.View>
 
         {/* Info Banner */}
-        <View style={styles.infoBanner}>
-          <Ionicons name="information-circle-outline" size={20} color="#1E40AF" style={{ marginRight: 8 }} />
+        <View style={[
+          styles.infoBanner,
+          reminderMessage ? styles.urgentBanner : null
+        ]}>
+          <Ionicons 
+            name={reminderMessage ? "alert-circle-outline" : "information-circle-outline"} 
+            size={20} 
+            color={reminderMessage ? "#DC2626" : "#1E40AF"} 
+            style={{ marginRight: 8 }} 
+          />
           {reminderMessage ? (
             (() => {
               const now = new Date();
@@ -198,24 +224,29 @@ export default function Home() {
 
               const isClickable = appointmentInfo &&
                 !appointmentInfo.isMissed &&
-                diffInMinutes <= 10;
+                diffInMinutes <= 30;
 
               return isClickable ? (
-                <TouchableOpacity onPress={() => router.push(`/appointment/${appointmentInfo.id}`)}>
-                <Text style={{ color: '#DC2626', fontWeight: 'bold' }}>
-                  {reminderMessage}
-                </Text>
-              </TouchableOpacity>
-
+                <TouchableOpacity
+                  onPress={() => {
+                    if (appointmentInfo?.id) {
+                      router.push(`/appointment/${appointmentInfo.id}`);
+                    }
+                  }}
+                >
+                  <Text style={styles.urgentText}>
+                    {reminderMessage}
+                  </Text>
+                </TouchableOpacity>
               ) : (
-                <Text style={[styles.infoText, { fontWeight: 'bold', color: '#DC2626' }]}>
+                <Text style={styles.urgentText}>
                   {reminderMessage}
                 </Text>
               );
             })()
           ) : (
             <Text style={styles.infoText}>
-              Karibu kwenye <Text style={{ fontWeight: 'bold' }}>Shifaa</Text> — msaidizi wako wa kiafya kwa lugha ya Kiswahili. Uliza dalili zako, pata ushauri wa kitaalamu, na uweke miadi na madaktari kwa urahisi.
+              Karibu kwenye <Text style={styles.brandText}>Shifaa</Text> — msaidizi wako wa kiafya kwa lugha ya Kiswahili.
             </Text>
           )}
         </View>
@@ -223,20 +254,112 @@ export default function Home() {
         {/* Quick Access */}
         <Text style={styles.sectionTitle}>Huduma za Haraka</Text>
         <View style={styles.quickAccessRow}>
-          <TouchableOpacity style={styles.quickAccessCard} onPress={() => handlePress('/shifaa')}>
-            <View style={styles.quickAccessIcon}>
-              <Ionicons name="chatbubble-ellipses" size={28} color="#4E8CFF" />
+          <TouchableOpacity 
+            style={styles.quickAccessCard} 
+            onPress={() => handlePress('/shifaa')}
+          >
+            <View style={[styles.quickAccessIcon, styles.aiIcon]}>
+              <MaterialCommunityIcons name="robot-happy-outline" size={28} color="#4E8CFF" />
             </View>
-            <Text style={styles.quickAccessTitle}>Ongea na Daktari AI</Text>
-            <Text style={styles.quickAccessSubtitle}>Msaada masaa 24</Text>
+            <Text style={styles.quickAccessTitle}>Shifaa AI</Text>
+            <Text style={styles.quickAccessSubtitle}>Pata majibu haraka</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.quickAccessCard} onPress={() => handlePress('/pharmacy')}>
-            <View style={[styles.quickAccessIcon, { backgroundColor: '#D1FAE5' }]}>
-              <FontAwesome5 name="clinic-medical" size={24} color="#10B981" />
+          <TouchableOpacity 
+            style={styles.quickAccessCard} 
+            onPress={() => handlePress('/pharmacy')}
+          >
+            <View style={[styles.quickAccessIcon, styles.pharmacyIcon]}>
+              <FontAwesome5 name="pills" size={24} color="#10B981" />
             </View>
-            <Text style={styles.quickAccessTitle}>Tafuta Duka la Dawa</Text>
-            <Text style={styles.quickAccessSubtitle}>Karibu nawe</Text>
+            <Text style={styles.quickAccessTitle}>Duka la Dawa</Text>
+            <Text style={styles.quickAccessSubtitle}>Tafuta karibu nawe</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Health Tips */}
+        <Text style={styles.sectionTitle}>Vidokezo vya Afya</Text>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false} 
+          style={styles.tipsScroll}
+          contentContainerStyle={styles.tipsContainer}
+        >
+          <View style={styles.tipCard}>
+            <Image
+              source={{ uri: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b' }}
+              style={styles.tipImage}
+            />
+            <View style={styles.tipContent}>
+              <Text style={styles.tipTitle}>Kunywa Maji Kwa Wingi</Text>
+              <Text style={styles.tipText}>Kunywa lita 2 za maji kila siku kwa afya njema</Text>
+            </View>
+          </View>
+
+          <View style={styles.tipCard}>
+            <Image
+              source={{ uri: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b' }}
+              style={styles.tipImage}
+            />
+            <View style={styles.tipContent}>
+              <Text style={styles.tipTitle}>Mazoezi ya Kila Siku</Text>
+              <Text style={styles.tipText}>Dakika 30 za mazoezi kila siku kudumisha afya</Text>
+            </View>
+          </View>
+
+          <View style={styles.tipCard}>
+            <Image
+              source={{ uri: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c' }}
+              style={styles.tipImage}
+            />
+            <View style={styles.tipContent}>
+              <Text style={styles.tipTitle}>Lishe Bora</Text>
+              <Text style={styles.tipText}>Kula mboga na matunda kwa wingi kwa afya bora</Text>
+            </View>
+          </View>
+        </ScrollView>
+
+        {/* Services Section */}
+        <Text style={styles.sectionTitle}>Huduma Zingine</Text>
+        <View style={styles.servicesGrid}>
+          <TouchableOpacity 
+            style={styles.serviceCard}
+            onPress={() => handlePress('/records')}
+          >
+            <View style={[styles.serviceIcon, styles.recordsIcon]}>
+              <Ionicons name="document-text-outline" size={24} color="#3B82F6" />
+            </View>
+            <Text style={styles.serviceTitle}>Kumbukumbu Zako</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.serviceCard}
+            onPress={() => handlePress('/lab')}
+          >
+            <View style={[styles.serviceIcon, styles.labIcon]}>
+              <MaterialCommunityIcons name="test-tube" size={24} color="#10B981" />
+            </View>
+            <Text style={styles.serviceTitle}>Uchunguzi wa Maabara</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.serviceCard}
+            onPress={() => handlePress('/emergency')}
+          >
+            <View style={[styles.serviceIcon, styles.emergencyIcon]}>
+              <Ionicons name="medkit-outline" size={24} color="#EF4444" />
+            </View>
+            <Text style={styles.serviceTitle}>Dharura</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.serviceCard}
+            onPress={() => handlePress('/articles')}
+          >
+            <View style={[styles.serviceIcon, styles.articlesIcon]}>
+              <Ionicons name="newspaper-outline" size={24} color="#8B5CF6" />
+            </View>
+            <Text style={styles.serviceTitle}>Makala za Afya</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -245,36 +368,52 @@ export default function Home() {
       <View style={styles.bottomNav}>
         <TouchableOpacity style={styles.navItemActive}>
           <Ionicons name="home" size={24} color="#4E8CFF" />
-          <Text style={styles.navTextActive}>Home</Text>
+          <Text style={styles.navTextActive}>Nyumbani</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.navItem} onPress={() => handlePress('/shifaa')}>
+        <TouchableOpacity 
+          style={styles.navItem} 
+          onPress={() => handlePress('/shifaa')}
+        >
           <Ionicons name="chatbubbles" size={24} color="#94A3B8" />
-          <Text style={styles.navText}>Chat</Text>
+          <Text style={styles.navText}>Mazungumzo</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.navItem} onPress={() => handlePress('/pharmacy')}>
-          <FontAwesome5 name="clinic-medical" size={24} color="#10B981" />
-          <Text style={styles.navText}>Pharmacy</Text>
+        <TouchableOpacity 
+          style={styles.navItem} 
+          onPress={() => handlePress('/appointments')}
+        >
+          <Ionicons name="calendar" size={24} color="#94A3B8" />
+          <Text style={styles.navText}>Miadi</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.navItem} onPress={() => handlePress('/profile')}>
+        <TouchableOpacity 
+          style={styles.navItem} 
+          onPress={() => handlePress('/profile')}
+        >
           <Ionicons name="person" size={24} color="#94A3B8" />
-          <Text style={styles.navText}>Profile</Text>
+          <Text style={styles.navText}>Akaunti</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 }
 
-
-
-
-
 const styles = StyleSheet.create({
   page: {
     flex: 1,
     backgroundColor: '#F8FAFC',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  loadingText: {
+    marginTop: 16,
+    color: '#64748B',
+    fontSize: 16,
   },
   fixedHeader: {
     flexDirection: 'row',
@@ -288,20 +427,6 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F1F5F9',
     zIndex: 100,
   },
-  infoBanner: {
-  flexDirection: 'row',
-  backgroundColor: '#DBEAFE',
-  padding: 12,
-  borderRadius: 12,
-  marginBottom: 20,
-  alignItems: 'flex-start',
-},
-infoText: {
-  flex: 1,
-  fontSize: 14,
-  color: '#1E40AF',
-},
-
   profileContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -324,24 +449,24 @@ infoText: {
   },
   notificationButton: {
     position: 'relative',
+    padding: 8,
   },
   notificationBadge: {
     position: 'absolute',
-    top: -2,
-    right: -2,
+    top: 4,
+    right: 4,
     width: 8,
     height: 8,
     borderRadius: 4,
     backgroundColor: '#EF4444',
   },
   container: {
-    padding: 10,
-    paddingTop: 5,
+    padding: 16,
     paddingBottom: 100,
   },
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    borderRadius: 16,
     padding: 20,
     marginBottom: 24,
     shadowColor: '#000',
@@ -434,17 +559,52 @@ infoText: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#4E8CFF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   bookButtonText: {
     color: 'white',
     fontWeight: '600',
+    fontSize: 16,
     marginRight: 8,
+  },
+  infoBanner: {
+    flexDirection: 'row',
+    backgroundColor: '#DBEAFE',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 24,
+    alignItems: 'center',
+  },
+  urgentBanner: {
+    backgroundColor: '#FEE2E2',
+  },
+  infoText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#1E40AF',
+    lineHeight: 20,
+  },
+  urgentText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#DC2626',
+    fontWeight: '500',
+    lineHeight: 20,
+  },
+  brandText: {
+    fontWeight: '700',
+    color: '#1E40AF',
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#1E293B',
     marginBottom: 16,
+    marginTop: 8,
   },
   quickAccessRow: {
     flexDirection: 'row',
@@ -466,10 +626,15 @@ infoText: {
     width: 56,
     height: 56,
     borderRadius: 16,
-    backgroundColor: '#E0E7FF',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
+  },
+  aiIcon: {
+    backgroundColor: '#E0E7FF',
+  },
+  pharmacyIcon: {
+    backgroundColor: '#D1FAE5',
   },
   quickAccessTitle: {
     fontSize: 16,
@@ -484,8 +649,11 @@ infoText: {
   tipsScroll: {
     marginBottom: 24,
   },
+  tipsContainer: {
+    paddingBottom: 8,
+  },
   tipCard: {
-    width: 240,
+    width: width * 0.7,
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     overflow: 'hidden',
@@ -512,6 +680,52 @@ infoText: {
   tipText: {
     fontSize: 13,
     color: '#64748B',
+    lineHeight: 18,
+  },
+  servicesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: 24,
+  },
+  serviceCard: {
+    width: '48%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  serviceIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  recordsIcon: {
+    backgroundColor: '#EFF6FF',
+  },
+  labIcon: {
+    backgroundColor: '#ECFDF5',
+  },
+  emergencyIcon: {
+    backgroundColor: '#FEF2F2',
+  },
+  articlesIcon: {
+    backgroundColor: '#F5F3FF',
+  },
+  serviceTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#1E293B',
+    textAlign: 'center',
   },
   bottomNav: {
     position: 'absolute',

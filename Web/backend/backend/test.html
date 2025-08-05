@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>WebSocket Test</title>
+</head>
+<body>
+  <script>
+    let ws = new WebSocket("ws://192.168.0.222:8000/ws/call/testroom/");
+    ws.onopen = () => console.log("✅ WebSocket connected");
+    ws.onerror = (e) => console.error("❌ WebSocket error", e);
+    ws.onclose = () => console.warn("🚫 WebSocket closed");
+  </script>
+  <h1>Check the Console for WebSocket Status</h1>
+</body>
+</html>

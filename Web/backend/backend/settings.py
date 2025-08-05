@@ -41,6 +41,8 @@ INSTALLED_APPS = [
     'diagnosis',
     'pharmacy',
     'appointment',
+    'channels',
+    'voicenote',
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
@@ -160,6 +162,9 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
 
@@ -174,4 +179,17 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'salummasud54@gmail.com'
 EMAIL_HOST_PASSWORD = 'Ma$$22072001'  # App password from Gmail
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+
+ASGI_APPLICATION = "backend.asgi.application"
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("127.0.0.1", 6379)],
+        },
+    },
+}
+
 

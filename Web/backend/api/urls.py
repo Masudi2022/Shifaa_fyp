@@ -10,6 +10,7 @@ from pharmacy.views import pharmacy_list
 from account.views import RegisterView, CustomTokenObtainPairView, logout_view, update_user_profile
 from rest_framework_simplejwt.views import TokenRefreshView
 from appointment.views import *
+from voicenote.views import *
 
 urlpatterns = [
     # Chat & Session Endpoints
@@ -47,7 +48,11 @@ urlpatterns = [
 
 
     path('appointments/check-reminder/', check_upcoming_appointment, name='check_appointment_reminder'),
+
+    # Voice Notes
+    path('api/voice-notes/send/<int:appointment_id>/', send_voice_note_by_appointment_id, name='send_voice_note'),
 ]
+
 
 
 

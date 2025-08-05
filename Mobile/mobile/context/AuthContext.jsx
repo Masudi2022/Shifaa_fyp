@@ -1,14 +1,10 @@
-// context/AuthContext.js
 import React, { createContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { BASE_URL } from '@env';
 
 export const AuthContext = createContext();
-
-import { BASE_URL } from '@env';
 const baseUrl = BASE_URL;
-
-// 🔐 AuthProvider Component
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -19,15 +15,18 @@ export const AuthProvider = ({ children }) => {
     setIsLoading(true);
     try {
       const response = await axios.post(`${baseUrl}/login/`, { email, password });
-
       const { access, refresh, email: userEmail, role, full_name } = response.data;
 
+      // Store tokens
       await AsyncStorage.setItem('access_token', access);
       await AsyncStorage.setItem('refresh_token', refresh);
-      await AsyncStorage.setItem('user', JSON.stringify({ email: userEmail, role, full_name }));
 
-      setUser({ email: userEmail, role, full_name });
+      // Store user object + email separately for easy retrieval
+      const userData = { email: userEmail, role, full_name };
+      await AsyncStorage.setItem('user', JSON.stringify(userData));
+      await AsyncStorage.setItem('user_email', userEmail); // ✅ store email directly
 
+      setUser(userData);
     } catch (error) {
       console.error('Login error:', error.response?.data || error.message);
       throw error;
@@ -36,7 +35,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // 🧾 Register (Always as User)
+  // 🧾 Register
   const register = async ({ email, password, full_name, phone }) => {
     setIsLoading(true);
     try {
@@ -45,12 +44,9 @@ export const AuthProvider = ({ children }) => {
         password,
         full_name,
         phone,
-        role: 'User', // ✅ force role as 'User'
+        role: 'User',
       });
-
-      // Auto login after registration
-      await login(email, password);
-
+      await login(email, password); // auto-login
     } catch (error) {
       console.error('Register error:', error.response?.data || error.message);
       throw error;
@@ -61,9 +57,7 @@ export const AuthProvider = ({ children }) => {
 
   // 🚪 Logout
   const logout = async () => {
-    await AsyncStorage.removeItem('access_token');
-    await AsyncStorage.removeItem('refresh_token');
-    await AsyncStorage.removeItem('user');
+    await AsyncStorage.multiRemove(['access_token', 'refresh_token', 'user', 'user_email']);
     setUser(null);
   };
 
@@ -75,7 +69,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // 🔄 Optional: Refresh token
+  // 🔄 Refresh token
   const refreshAccessToken = async () => {
     try {
       const refresh = await AsyncStorage.getItem('refresh_token');
@@ -84,7 +78,7 @@ export const AuthProvider = ({ children }) => {
       return response.data.access;
     } catch (error) {
       console.error('Token refresh error:', error.response?.data || error.message);
-      logout(); // force logout if refresh fails
+      logout();
     }
   };
 
@@ -107,3 +101,5 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
+
+

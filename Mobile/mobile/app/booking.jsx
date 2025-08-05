@@ -132,8 +132,11 @@ export default function BookingPage() {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
-      {/* Header with Booking History icon */}
+      {/* Header with Back and Booking History */}
       <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.push("/")}>
+          <Ionicons name="arrow-back" size={28} color="#4E8CFF" />
+        </TouchableOpacity>
         <Text style={styles.title}>Available Doctors</Text>
         <TouchableOpacity onPress={() => router.push("/bookingHistory")}>
           <Ionicons name="time-outline" size={28} color="#4E8CFF" />
@@ -218,7 +221,6 @@ export default function BookingPage() {
     </SafeAreaView>
   );
 }
-
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, backgroundColor: "#fff" },
   header: {

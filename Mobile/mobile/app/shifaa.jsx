@@ -1,717 +1,337 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useRef, useState, useContext } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  ActivityIndicator,
-  Alert,
-  Animated,
-  PanResponder,
-  StyleSheet,
-  Dimensions,
-  SafeAreaView,
-  StatusBar
+  View, Text, StyleSheet, FlatList, SafeAreaView,
+  TextInput, TouchableOpacity, Animated, KeyboardAvoidingView,
+  Platform, TouchableWithoutFeedback, Keyboard, Alert, ActivityIndicator
 } from 'react-native';
+import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AuthContext } from '../context/AuthContext';
+import { BASE_URL } from '@env';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { BASE_URL } from '@env'; // Ensure you have this set up in your .
 
-const { width, height } = Dimensions.get('window');
-const MENU_WIDTH = width * 0.9;
-
-// List of random topics in Swahili
-const RANDOM_TOPICS = [
-  "Dalili za Moto",
-  "Maumivu ya Kichwa",
-  "Ugonjwa wa Tumbo",
-  "Kuhara",
-  "Kichefuchefu",
-  "Maumivu ya Miguu",
-  "Homa",
-  "Kukohoa",
-  "Maumivu ya Mgongo",
-  "Matatizo ya Kulala"
-];
-
-const ApiBase = {
-  baseUrl: BASE_URL,
-  endpoints: {
-    chat: '/chat/',
-    chatSessions: '/sessions/user/',
-    messages: (sessionId) => `/sessions/${sessionId}/messages/`,
-    createSession: '/sessions/create/',
-  },
-};
-
-const Shifaa = () => {
-  // State initialization
-  const [messages, setMessages] = useState([
-    { id: '1', text: 'Karibu! Unaweza kuniambia unavyojisikia leo?', sender: 'bot' },
-  ]);
-  const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [sessionId, setSessionId] = useState('');
-  const [deviceId, setDeviceId] = useState('');
+const ChatDemo = () => {
+  const { refreshAccessToken, user } = useContext(AuthContext);
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sessionId, setSessionId] = useState(null);
   const [sessions, setSessions] = useState([]);
-  const [menuOpen, setMenuOpen] = useState(false);
-  
-  
-  // Refs and animations
-  const menuPosition = useRef(new Animated.Value(-MENU_WIDTH)).current;
-  const overlayOpacity = useRef(new Animated.Value(0)).current;
-  const flatListRef = useRef(null);
-  const keyboardDidShowListener = useRef(null);
-  const keyboardDidHideListener = useRef(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const slideAnim = useRef(new Animated.Value(-300)).current;
+  const deviceId = 'my-device-id-123';
 
-  // Get a random topic for sessions without one
-  const getRandomTopic = () => {
-    return RANDOM_TOPICS[Math.floor(Math.random() * RANDOM_TOPICS.length)];
-  };
-
-  const handleScroll = ({ nativeEvent }) => {
-  const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
-  const paddingToBottom = 20;
-
-  const atBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom;
-  setIsAtBottom(atBottom);
-};
-
-
-  // Toggle menu with animation
-  const toggleMenu = () => {
-    setMenuOpen(!menuOpen);
-    Animated.parallel([
-      Animated.timing(menuPosition, {
-        toValue: menuOpen ? -MENU_WIDTH : 0,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-      Animated.timing(overlayOpacity, {
-        toValue: menuOpen ? 0.5 : 0,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
-
-  // Close menu when clicking overlay
-  const closeMenu = () => {
-    if (menuOpen) {
-      toggleMenu();
+  const loadUserSessions = async () => {
+    try {
+      const token = (await AsyncStorage.getItem('access_token')) || (await refreshAccessToken());
+      const res = await axios.get(`${BASE_URL}/sessions/user/`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setSessions(res.data);
+    } catch (err) {
+      console.error('Error loading sessions:', err.response?.data || err.message);
     }
   };
 
-  // Pan responder for swipe gestures
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onPanResponderMove: (evt, gestureState) => {
-        if (gestureState.dx > 0 && !menuOpen) {
-          menuPosition.setValue(Math.min(gestureState.dx - MENU_WIDTH, 0));
-          overlayOpacity.setValue(Math.min(gestureState.dx / MENU_WIDTH, 0.5));
-        } else if (gestureState.dx < 0 && menuOpen) {
-          menuPosition.setValue(Math.max(gestureState.dx, -MENU_WIDTH));
-          overlayOpacity.setValue(Math.max(0.5 + (gestureState.dx / MENU_WIDTH), 0));
-        }
-      },
-      onPanResponderRelease: (evt, gestureState) => {
-        if (gestureState.dx > MENU_WIDTH / 3 && !menuOpen) {
-          toggleMenu();
-        } else if (gestureState.dx < -MENU_WIDTH / 3 && menuOpen) {
-          toggleMenu();
-        } else {
-          Animated.parallel([
-            Animated.spring(menuPosition, {
-              toValue: menuOpen ? 0 : -MENU_WIDTH,
-              useNativeDriver: true,
-            }),
-            Animated.spring(overlayOpacity, {
-              toValue: menuOpen ? 0.5 : 0,
-              useNativeDriver: true,
-            }),
-          ]).start();
-        }
-      },
-    })
-  ).current;
-
-  // Auto-scroll to bottom when messages change or keyboard appears
- useEffect(() => {
-  const scrollToBottom = () => {
-    if (flatListRef.current && messages.length > 0) {
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, messages.length * 50); // Delay for smooth scroll after new message
-    }
-  };
-
-  scrollToBottom();
-
-  if (Platform.OS === 'ios') {
-    keyboardDidShowListener.current = Keyboard.addListener('keyboardDidShow', scrollToBottom);
-    keyboardDidHideListener.current = Keyboard.addListener('keyboardDidHide', scrollToBottom);
-  }
-
-  return () => {
-    if (keyboardDidShowListener.current) {
-      keyboardDidShowListener.current.remove();
-    }
-    if (keyboardDidHideListener.current) {
-      keyboardDidHideListener.current.remove();
-    }
-  };
-}, [messages]);
-
-
-
-
-  // Load initial data
-  useEffect(() => {
-    const loadInitialData = async () => {
-      try {
-        let savedId = await AsyncStorage.getItem('device_id');
-        if (!savedId) {
-          savedId = 'device-' + Math.random().toString(36).substring(7);
-          await AsyncStorage.setItem('device_id', savedId);
-        }
-        setDeviceId(savedId);
-
-        const lastSession = await AsyncStorage.getItem('session_id');
-        if (lastSession) {
-          setSessionId(lastSession);
-          await loadSessionMessages(lastSession);
-        }
-        
-        // Load sessions history on initial load
-        await fetchSessions();
-      } catch (error) {
-        console.error('Initialization error:', error);
-      }
-    };
-    loadInitialData();
-  }, []);
-
-  // Create new diagnosis session with topic
-  const handleNewDiagnosis = async () => {
+  const loadSessionMessages = async (id) => {
     try {
       setIsLoading(true);
-      const access = await AsyncStorage.getItem('access_token');
-      const userData = await AsyncStorage.getItem('user');
-      const user = userData ? JSON.parse(userData) : null;
-
-      const response = await fetch(`${ApiBase.baseUrl}${ApiBase.endpoints.createSession}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(access && { Authorization: `Bearer ${access}` }),
-        },
-        body: JSON.stringify({
-          device_id: deviceId,
-          user_email: user?.email || 'anonymous@guest.com',
-          first_message: input || "Habari, naomba msaada" // Send first message for topic extraction
-        }),
+      const token = (await AsyncStorage.getItem('access_token')) || (await refreshAccessToken());
+      const res = await axios.get(`${BASE_URL}/sessions/${id}/messages/`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
-
-      const responseData = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(responseData.error || 'Imeshindwa kuunda mazungumzo mapya');
-      }
-
-      setSessionId(responseData.session_id);
-      await AsyncStorage.setItem('session_id', responseData.session_id);
-      setMessages([{ id: '1', text: 'Karibu! Unaweza kuniambia unavyojisikia leo?', sender: 'bot' }]);
-      setInput('');
-      
-      // Refresh the sessions list
-      await fetchSessions();
-      toggleMenu();
-    } catch (error) {
-      Alert.alert('Hitilafu', error.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Fetch session history with topics
-  const fetchSessions = async () => {
-    try {
-      setIsLoading(true);
-      const access = await AsyncStorage.getItem('access_token');
-      const response = await fetch(`${ApiBase.baseUrl}${ApiBase.endpoints.chatSessions}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          ...(access && { Authorization: `Bearer ${access}` }),
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Imeshindwa kupakua historia');
-      }
-
-      const data = await response.json();
-      if (Array.isArray(data)) {
-        // Add random topics to sessions without one and sort by date
-        const processedSessions = data.map(session => ({
-          ...session,
-          topic: session.topic || getRandomTopic()
-        })).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-        
-        setSessions(processedSessions);
-      } else {
-        throw new Error('Data si sahihi');
-      }
-    } catch (error) {
-      console.error('Error fetching sessions:', error);
-      Alert.alert('Hitilafu', error.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Load messages for selected session
-  const loadSessionMessages = async (selectedSessionId) => {
-    try {
-      setIsLoading(true);
-      const access = await AsyncStorage.getItem('access_token');
-      const response = await fetch(`${ApiBase.baseUrl}${ApiBase.endpoints.messages(selectedSessionId)}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          ...(access && { Authorization: `Bearer ${access}` }),
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Imeshindwa kupakua ujumbe');
-      }
-
-      const data = await response.json();
-      const formatted = data.map((msg) => ({
+      const formatted = res.data.map((msg) => ({
         id: msg.id.toString(),
         text: msg.text,
-        sender: msg.is_user ? 'user' : 'bot',
+        sender: msg.is_user ? 'me' : 'other',
+        time: new Date(msg.timestamp).toLocaleTimeString(),
+        type: msg.type || 'text',
       }));
-
-      setMessages(formatted);
-      setSessionId(selectedSessionId);
-      await AsyncStorage.setItem('session_id', selectedSessionId);
-    } catch (error) {
-      Alert.alert('Hitilafu', error.message);
+      setMessages(formatted.reverse());
+    } catch (err) {
+      console.error('Error loading messages:', err.response?.data || err.message);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Send message to API
-  const sendMessageToAPI = async (message) => {
+  const toggleSidebar = () => {
+    if (!sidebarOpen) loadUserSessions();
+    Animated.timing(slideAnim, {
+      toValue: sidebarOpen ? -300 : 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+    setSidebarOpen(!sidebarOpen);
+  };
+
+  const startNewSession = async () => {
     try {
       setIsLoading(true);
-      const access = await AsyncStorage.getItem('access_token');
-      const userData = await AsyncStorage.getItem('user');
-      const user = userData ? JSON.parse(userData) : null;
-
-      const response = await fetch(`${ApiBase.baseUrl}${ApiBase.endpoints.chat}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(access && { Authorization: `Bearer ${access}` }),
-        },
-        body: JSON.stringify({
-          message,
-          device_id: deviceId,
-          user_email: user?.email || 'anonymous@guest.com',
-          session_id: sessionId,
-        }),
-      });
-
-      if (!response.ok) throw new Error('Maombi ya API yameshindwa');
-      return await response.json();
-    } catch (error) {
-      console.error('API Error:', error);
-      return {
-        response: 'Samahani, kuna tatizo la kiufundi. Tafadhali jaribu tena baadaye.',
-        possible_diseases: [],
-      };
+      const token = (await AsyncStorage.getItem('access_token')) || (await refreshAccessToken());
+      const res = await axios.post(
+        `${BASE_URL}/sessions/create/`,
+        { device_id: deviceId, first_message: 'Mazungumzo mapya' },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setSessionId(res.data.session_id);
+      setMessages([]);
+      Alert.alert('✅ Session Started', `Topic: ${res.data.topic}`);
+      loadUserSessions();
+      toggleSidebar();
+    } catch (err) {
+      console.error('Session creation error:', err.response?.data || err.message);
+      Alert.alert('❌ Error', 'Failed to start a new session');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Format bot response
-  const formatBotResponse = (res) => {
-    const { response, possible_diseases = [] } = res;
-    if (!possible_diseases.length) return response;
-
-    return `${response}\n\n${possible_diseases.map(
-      d => `🔹 ${d.disease.toUpperCase()}:\nMatibabu: ${d.treatment}\nUshauri: ${d.advice}`
-    ).join('\n\n')}`;
+  const selectSession = (session) => {
+    setSessionId(session.session_id);
+    loadSessionMessages(session.session_id);
+    toggleSidebar();
   };
 
-  // Handle send message
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+  const handleSend = async (customMessage) => {
+    const messageToSend = customMessage || newMessage;
+    if (!messageToSend.trim() || !sessionId) return;
 
-    const userMsg = {
+    const token = (await AsyncStorage.getItem('access_token')) || (await refreshAccessToken());
+    let email = user?.email || (await AsyncStorage.getItem('user_email'));
+
+    if (!email) {
+      Alert.alert('Error', 'User email is missing. Please log in again.');
+      return;
+    }
+
+    const tempMsg = {
       id: Date.now().toString(),
-      text: input,
-      sender: 'user',
+      text: messageToSend,
+      sender: 'me',
+      time: new Date().toLocaleTimeString(),
+      type: 'text'
     };
-    setMessages(prev => [...prev, userMsg]);
-    setInput('');
+    setMessages((prev) => [tempMsg, ...prev]);
 
     try {
-      const response = await sendMessageToAPI(input);
-      const botMsg = {
-        id: Date.now().toString() + '_bot',
-        text: formatBotResponse(response),
-        sender: 'bot',
-      };
-      setMessages(prev => [...prev, botMsg]);
-      
-      // Refresh session list after new message
-      await fetchSessions();
-    } catch (error) {
-      Alert.alert('Hitilafu', 'Imeshindwa kutuma ujumbe');
+      const res = await axios.post(
+        `${BASE_URL}/chat/`,
+        { message: messageToSend, device_id: deviceId, user_email: email, session_id: sessionId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (res.data?.response) {
+        const botMsg = {
+          id: (Date.now() + 1).toString(),
+          text: res.data.response,
+          sender: 'other',
+          time: new Date().toLocaleTimeString(),
+          type: res.data.type || 'text'
+        };
+        setMessages((prev) => [botMsg, ...prev]);
+      }
+    } catch (err) {
+      console.error('Chat error:', err.response?.data || err.message);
+      Alert.alert('❌ Error', 'Failed to send message');
+    }
+
+    if (!customMessage) {
+      setNewMessage('');
     }
   };
 
-  // Render message item
-  const renderMessage = ({ item }) => (
-    <View style={[
-      styles.messageContainer,
-      item.sender === 'user' ? styles.userContainer : styles.botContainer
-    ]}>
-      <View style={[
-        styles.messageBubble,
-        item.sender === 'user' ? styles.userBubble : styles.botBubble
-      ]}>
-        <Text style={[
-          styles.messageText,
-          item.sender === 'user' ? styles.userText : styles.botText
-        ]}>
-          {item.text}
-        </Text>
-      </View>
-    </View>
-  );
+  const renderMessage = ({ item }) => {
+    const isMe = item.sender === 'me';
 
-  // Render history item with topic
-  const renderHistoryItem = ({ item }) => (
-    <TouchableOpacity
-      style={styles.historyItem}
-      onPress={() => {
-        loadSessionMessages(item.session_id);
-        closeMenu();
-      }}
-    >
-      <Text style={styles.historyTopic} numberOfLines={1}>
-        {item.topic || 'Mazungumzo ya Afya'}
-      </Text>
-      <Text style={styles.historyDate}>
-        {new Date(item.created_at).toLocaleDateString('sw-TZ', {
-          day: 'numeric',
-          month: 'short',
-          year: 'numeric'
-        })}
-      </Text>
-      <Text style={styles.historyPreview} numberOfLines={1}>
-        {item.last_message || 'Bila ujumbe'}
-      </Text>
-    </TouchableOpacity>
-  );
+    if (item.type === 'buttons') {
+      return (
+        <View style={styles.otherMessageContainer}>
+          <Text style={styles.otherMessageText}>{item.text}</Text>
+          <View style={styles.buttonRow}>
+            <TouchableOpacity style={styles.optionButton} onPress={() => handleSend('Ndiyo')}>
+              <Text style={styles.optionButtonText}>Ndiyo</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.optionButton} onPress={() => handleSend('Hapana')}>
+              <Text style={styles.optionButtonText}>Hapana</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      );
+    }
+
+    return (
+      <View style={[styles.messageContainer, isMe ? styles.myMessageContainer : styles.otherMessageContainer]}>
+        <View style={[styles.messageBubble, isMe ? styles.myMessageBubble : styles.otherMessageBubble]}>
+          <Text style={isMe ? styles.myMessageText : styles.otherMessageText}>{item.text}</Text>
+          <Text style={isMe ? styles.myMessageTime : styles.otherMessageTime}>{item.time}</Text>
+        </View>
+      </View>
+    );
+  };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container} {...panResponder.panHandlers}>
-        {/* Sliding Menu */}
-        <Animated.View style={[
-          styles.menu,
-          { transform: [{ translateX: menuPosition }] }
-        ]}>
-          <View style={styles.menuContent}>
-            <View style={styles.menuHeader}>
-              <Text style={styles.menuTitle}>Historia ya Mazungumzo</Text>
-              <TouchableOpacity onPress={toggleMenu}>
-                <Ionicons name="close" size={24} color="#555" />
-              </TouchableOpacity>
-            </View>
-            
-            <TouchableOpacity
-              style={styles.newChatButton}
-              onPress={handleNewDiagnosis}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <ActivityIndicator color="#4E8CFF" size="small" />
-              ) : (
-                <>
-                  <Ionicons name="add" size={20} color="#4E8CFF" />
-                  <Text style={styles.newChatText}>Uchunguzi Mpya</Text>
-                </>
-              )}
-            </TouchableOpacity>
-            
-            <FlatList
-              data={sessions}
-              renderItem={renderHistoryItem}
-              keyExtractor={item => item.session_id}
-              contentContainerStyle={styles.historyList}
-              refreshing={isLoading}
-              onRefresh={fetchSessions}
-            />
-          </View>
-        </Animated.View>
-
-
-
-        {/* Main Content */}
-        <KeyboardAvoidingView
-          style={styles.mainContent}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.select({ ios: 0, android: 25 })}
-        >
-          <View style={styles.contentContainer}>
-            {/* Header */}
-            <View style={styles.header}>
-              <TouchableOpacity onPress={toggleMenu}>
-                <Ionicons name="menu" size={24} color="#4E8CFF" />
-              </TouchableOpacity>
-              <Text style={styles.headerTitle}>Daktari Mahiri</Text>
-              <View style={{ width: 24 }} />
-            </View>
-
+    <SafeAreaView style={styles.container}>
+      {/* Sidebar */}
+      <Animated.View pointerEvents={sidebarOpen ? 'auto' : 'none'} style={[styles.sidebar, { transform: [{ translateX: slideAnim }] }]}>
+        <View style={styles.sidebarHeader}>
+          <Text style={styles.sidebarTitle}>Mazungumzo</Text>
+        </View>
+        <View style={styles.sidebarContent}>
           <FlatList
-            ref={flatListRef}
-            data={messages}
-            renderItem={renderMessage}
-            keyExtractor={item => item.id}
-            contentContainerStyle={styles.chatContainer}
-            style={styles.chatList}
-            maintainVisibleContentPosition={{
-              minIndexForVisible: 10,
-              autoscrollToTopThreshold: 1000,
-            }}
-            onScrollBeginDrag={() => setAutoScroll(false)} // Optional: disables auto scroll when user scrolls
+            data={sessions}
+            keyExtractor={(item) => item.session_id}
+            renderItem={({ item }) => (
+              <TouchableOpacity style={styles.sessionItem} onPress={() => selectSession(item)}>
+                <Text style={styles.sessionTopic}>{item.topic || 'No Topic'}</Text>
+                <Text style={styles.sessionDate}>{new Date(item.created_at).toLocaleString()}</Text>
+              </TouchableOpacity>
+            )}
           />
+          <TouchableOpacity style={styles.newConversationButton} onPress={startNewSession}>
+            <Text style={styles.newConversationButtonText}>➕ Mazungumzo Mapya</Text>
+          </TouchableOpacity>
+        </View>
+      </Animated.View>
 
+      {/* Overlay */}
+      {sidebarOpen && (
+        <TouchableOpacity
+          style={styles.overlay}
+          onPress={toggleSidebar}
+          activeOpacity={1}
+          pointerEvents={sidebarOpen ? 'auto' : 'none'}
+        />
+      )}
 
-            {/* Input Area */}
+      {/* Main Chat */}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.chatContainer}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 20 : 10}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={{ flex: 1 }}>
+            <View style={styles.chatHeader}>
+              <TouchableOpacity onPress={toggleSidebar} style={styles.menuButton}>
+                <Text style={styles.menuButtonText}>☰</Text>
+              </TouchableOpacity>
+              <Text style={styles.chatTitle}>Maongezi</Text>
+              <View style={styles.headerSpacer} />
+            </View>
+
+            {isLoading ? (
+              <View style={styles.loadingMessages}>
+                <ActivityIndicator size="large" color="#4E8CFF" />
+              </View>
+            ) : messages.length === 0 ? (
+              <View style={styles.emptyMessages}>
+                <Ionicons name="chatbubbles-outline" size={48} color="#CBD5E1" />
+                <Text style={styles.emptyMessagesText}>Hakuna ujumbe bado</Text>
+                <Text style={styles.emptyMessagesSubtext}>Anza mazungumzo kwa kubonyeza kitufe hapo chini</Text>
+              </View>
+            ) : (
+              <FlatList
+                data={messages}
+                renderItem={renderMessage}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={styles.messagesList}
+                inverted
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+              />
+            )}
+
             <View style={styles.inputContainer}>
               <TextInput
                 style={styles.input}
-                placeholder="Andika dalili zako..."
-                value={input}
-                onChangeText={setInput}
-                placeholderTextColor="#999"
-                multiline
-                editable={!isLoading}
-                onSubmitEditing={handleSend}
+                value={newMessage}
+                onChangeText={setNewMessage}
+                placeholder="Andika ujumbe..."
               />
-              <TouchableOpacity
-                onPress={handleSend}
-                style={[styles.sendButton, isLoading && styles.disabledButton]}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <ActivityIndicator color="white" size="small" />
-                ) : (
-                  <Ionicons name="send" size={20} color="white" />
-                )}
+              <TouchableOpacity style={styles.sendButton} onPress={() => handleSend()}>
+                <Text style={styles.sendButtonText}>Tuma</Text>
               </TouchableOpacity>
             </View>
           </View>
-        </KeyboardAvoidingView>
-      </View>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: { flex: 1, backgroundColor: '#fff' },
+  sidebar: { position: 'absolute', top: 0, bottom: 0, left: 0, width: 300, backgroundColor: '#fff', zIndex: 10, elevation: 10, padding: 16 },
+  sidebarHeader: { paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#ddd' },
+  sidebarTitle: { fontSize: 18, fontWeight: 'bold' },
+  sidebarContent: { flex: 1, marginTop: 10 },
+  sessionItem: { paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#eee' },
+  sessionTopic: { fontSize: 16, fontWeight: '600' },
+  sessionDate: { fontSize: 12, color: '#666' },
+  newConversationButton: { backgroundColor: '#4E8CFF', padding: 12, borderRadius: 8, marginTop: 15 },
+  newConversationButtonText: { color: '#fff', fontWeight: 'bold', textAlign: 'center' },
+  chatContainer: { flex: 1 },
+  chatHeader: { flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#f8f8f8' },
+  menuButton: { padding: 8 },
+  menuButtonText: { fontSize: 20 },
+  chatTitle: { flex: 1, textAlign: 'center', fontSize: 18, fontWeight: 'bold' },
+  headerSpacer: { width: 30 },
+  messagesList: { padding: 16 },
+  messageContainer: { marginVertical: 4 },
+  myMessageContainer: { alignSelf: 'flex-end' },
+  otherMessageContainer: { alignSelf: 'flex-start', backgroundColor: '#eee', padding: 10, borderRadius: 10, maxWidth: '80%', marginVertical: 4 },
+  messageBubble: { padding: 10, borderRadius: 10, maxWidth: '80%' },
+  myMessageBubble: { backgroundColor: '#4E8CFF' },
+  otherMessageBubble: { backgroundColor: '#eee' },
+  myMessageText: { color: '#fff' },
+  otherMessageText: { color: '#000' },
+  myMessageTime: { fontSize: 10, color: '#fff', textAlign: 'right' },
+  otherMessageTime: { fontSize: 10, color: '#555', textAlign: 'right' },
+  inputContainer: { flexDirection: 'row', padding: 8, backgroundColor: '#f8f8f8' },
+  input: { flex: 1, backgroundColor: '#fff', borderRadius: 20, paddingHorizontal: 16 },
+  sendButton: { paddingHorizontal: 16, justifyContent: 'center' },
+  sendButtonText: { color: '#4E8CFF', fontWeight: 'bold' },
+  overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.3)', zIndex: 5 },
+  buttonRow: { flexDirection: 'row', marginTop: 8 },
+  optionButton: { backgroundColor: '#4E8CFF', padding: 10, borderRadius: 8, marginHorizontal: 5 },
+  optionButtonText: { color: '#fff', fontWeight: 'bold' },
+  loadingMessages: {
     flex: 1,
-    backgroundColor: '#fff',
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
-  },
-  container: {
-    flex: 1,
-    backgroundColor: '#f8f9fe',
-  },
-  menu: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: MENU_WIDTH,
-    backgroundColor: '#fff',
-    zIndex: 100,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    shadowOffset: { width: 2, height: 0 },
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
-  },
-  menuContent: {
-    flex: 1,
-  },
-  menuHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  menuTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-  },
-  newChatButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  newChatText: {
-    marginLeft: 10,
-    color: '#4E8CFF',
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  historyList: {
-    paddingBottom: 20,
-  },
-  historyItem: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  historyTopic: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
-  },
-  historyDate: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 4,
-  },
-  historyPreview: {
-    fontSize: 13,
-    color: '#999',
-    fontStyle: 'italic',
-  },
-  overlay: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
-    backgroundColor: '#000',
-    zIndex: 99,
-  },
-  mainContent: {
-    flex: 1,
-    backgroundColor: '#f8f9fe',
-  },
-  contentContainer: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#333',
-  },
-  chatContainer: {
-    padding: 16,
-    paddingBottom: 20,
-  },
-  chatList: {
-    flex: 1,
-  },
-  messageContainer: {
-    marginBottom: 12,
-  },
-  userContainer: {
-    alignItems: 'flex-end',
-  },
-  botContainer: {
-    alignItems: 'flex-start',
-  },
-  messageBubble: {
-    padding: 12,
-    borderRadius: 16,
-    maxWidth: '80%',
-  },
-  userBubble: {
-    backgroundColor: '#4E8CFF',
-    borderTopRightRadius: 4,
-  },
-  botBubble: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 4,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-  },
-  messageText: {
-    fontSize: 16,
-  },
-  userText: {
-    color: '#fff',
-  },
-  botText: {
-    color: '#333',
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    padding: 16,
-    paddingBottom: Platform.select({ ios: 16, android: 8 }),
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-    alignItems: 'center',
-  },
-  input: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 24,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    minHeight: 48,
-    maxHeight: 120,
-  },
-  sendButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#4E8CFF',
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 8,
   },
-  disabledButton: {
-    backgroundColor: '#ccc',
+  emptyMessages: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
   },
+  emptyMessagesText: {
+    fontSize: 18,
+    color: '#64748B',
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  emptyMessagesSubtext: {
+    fontSize: 14,
+    color: '#94A3B8',
+    marginTop: 8,
+    textAlign: 'center',
+    maxWidth: '80%',
+  },
+  bottomNav: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+    backgroundColor: '#fff',
+  },
+  navItem: { alignItems: 'center' },
+  navItemActive: { alignItems: 'center' },
+  navText: { fontSize: 12, color: '#94A3B8', marginTop: 4 },
+  navTextActive: { fontSize: 12, color: '#4E8CFF', fontWeight: 'bold', marginTop: 4 },
 });
 
-export default Shifaa; 
+export default ChatDemo;
