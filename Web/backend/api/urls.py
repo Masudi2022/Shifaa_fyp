@@ -51,8 +51,8 @@ urlpatterns = [
 
     # Voice Notes
     path('api/voice-notes/send/<int:appointment_id>/', send_voice_note_by_appointment_id, name='send_voice_note'),
+    path('api/voice-notes/<int:appointment_id>/', get_voice_notes_by_appointment, name='get_voice_notes_by_appointment_id'),
 ]
-
 
 
 
