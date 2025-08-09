@@ -47,3 +47,20 @@ class PredictedDisease(models.Model):
 
     def __str__(self):
         return self.disease_name
+    
+
+
+
+
+class MedicalReport(models.Model):
+    session_id = models.CharField(max_length=255, blank=True, null=True)
+    user_email = models.EmailField()
+    user_name = models.CharField(max_length=255, blank=True, null=True)
+    summary = models.TextField(blank=True, null=True)
+    symptoms = models.JSONField(default=list, blank=True)  # stores an array
+    possible_diseases = models.JSONField(default=list, blank=True)  # array of objects
+    pdf = models.FileField(upload_to='reports/', blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Report for {self.user_email} ({self.created_at.date()})"

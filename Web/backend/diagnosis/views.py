@@ -222,3 +222,59 @@ def chat_with_doctor(request):
         "symptoms": session.symptoms,
         "possible_diseases": possible_diseases
     })
+
+
+    
+from rest_framework.decorators import api_view, permission_classes, parser_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.response import Response
+from rest_framework import status
+from .models import MedicalReport
+from .serializers import MedicalReportSerializer
+@api_view(['GET', 'POST', 'DELETE'])
+@permission_classes([IsAuthenticated])
+@parser_classes([MultiPartParser, FormParser])
+def medical_report_view(request, report_id=None):
+    """
+    Handles:
+    - GET /reports/ → Get all reports for the logged-in user
+    - GET /reports/<id>/ → Get specific report (only if belongs to user)
+    - POST /reports/ → Create a report for the logged-in user
+    - DELETE /reports/<id>/ → Delete specific report (only if belongs to user)
+    """
+
+    # GET (all or single)
+    if request.method == 'GET':
+        if report_id:  # Get by ID
+            try:
+                report = MedicalReport.objects.get(id=report_id, user=request.user)
+                serializer = MedicalReportSerializer(report)
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            except MedicalReport.DoesNotExist:
+                return Response({"error": "Report not found"}, status=status.HTTP_404_NOT_FOUND)
+        else:  # Get all for current user
+            reports = MedicalReport.objects.filter(user=request.user)
+            serializer = MedicalReportSerializer(reports, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+    # POST (create new)
+    elif request.method == 'POST':
+        data = request.data.copy()
+        data['user'] = request.user.id  # Force link to current user
+        serializer = MedicalReportSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save(user=request.user)
+            return Response({"message": "Report saved successfully", "data": serializer.data}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    # DELETE (by ID)
+    elif request.method == 'DELETE':
+        if not report_id:
+            return Response({"error": "Report ID required for deletion"}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            report = MedicalReport.objects.get(id=report_id, user=request.user)
+            report.delete()
+            return Response({"message": "Report deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+        except MedicalReport.DoesNotExist:
+            return Response({"error": "Report not found or not yours"}, status=status.HTTP_404_NOT_FOUND)

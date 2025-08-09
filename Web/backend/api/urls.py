@@ -1,11 +1,5 @@
 from django.urls import path
-from diagnosis.views import (
-    chat_with_doctor,
-    create_session,
-    list_sessions,
-    get_session_messages,
-    get_chat_sessions
-)
+from diagnosis.views import *
 from pharmacy.views import pharmacy_list
 from account.views import RegisterView, CustomTokenObtainPairView, logout_view, update_user_profile
 from rest_framework_simplejwt.views import TokenRefreshView
@@ -14,7 +8,7 @@ from voicenote.views import *
 
 urlpatterns = [
     # Chat & Session Endpoints
-    path('chat/', chat_with_doctor, name='chat_with_doctor'),
+    path('smart-doctor/chat/', chat_with_doctor, name='chat_with_doctor'),
     path('sessions/create/', create_session, name='create_session'),
     path('sessions/device/', list_sessions, name='list_sessions_by_device'),
     path('sessions/user/', get_chat_sessions, name='list_sessions_by_user'),
@@ -52,7 +46,12 @@ urlpatterns = [
     # Voice Notes
     path('api/voice-notes/send/<int:appointment_id>/', send_voice_note_by_appointment_id, name='send_voice_note'),
     path('api/voice-notes/<int:appointment_id>/', get_voice_notes_by_appointment, name='get_voice_notes_by_appointment_id'),
+
+    path('reports/', medical_report_view),  # GET all, POST
+    path('reports/<int:report_id>/', medical_report_view),  # GET by ID, DELETE
 ]
+
+
 
 
 

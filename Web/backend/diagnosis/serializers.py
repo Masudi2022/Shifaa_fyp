@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import ChatSession, Message, PredictedDisease
+from .models import *
 from account.models import CustomUser
 
 class MessageSerializer(serializers.ModelSerializer):
@@ -21,3 +21,14 @@ class ChatSessionSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChatSession
         fields = '__all__'
+
+
+
+
+
+class MedicalReportSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MedicalReport
+        fields = '__all__'
+
+

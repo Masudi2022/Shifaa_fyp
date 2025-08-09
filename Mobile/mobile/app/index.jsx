@@ -324,7 +324,7 @@ export default function Home() {
         <View style={styles.servicesGrid}>
           <TouchableOpacity 
             style={styles.serviceCard}
-            onPress={() => handlePress('/records')}
+            onPress={() => handlePress('/Record/records')}
           >
             <View style={[styles.serviceIcon, styles.recordsIcon]}>
               <Ionicons name="document-text-outline" size={24} color="#3B82F6" />
