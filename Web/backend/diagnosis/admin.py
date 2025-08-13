@@ -4,4 +4,11 @@ from .models import *
 
 admin.site.register(Message)
 
-# Register your models here.
+# Rfrom django.contrib import admin
+from .models import MedicalReport
+
+@admin.register(MedicalReport)
+class MedicalReportAdmin(admin.ModelAdmin):
+    list_display = ('user', 'created_at')
+    search_fields = ('user__email',)
+

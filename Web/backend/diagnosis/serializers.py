@@ -22,13 +22,12 @@ class ChatSessionSerializer(serializers.ModelSerializer):
         model = ChatSession
         fields = '__all__'
 
-
-
-
-
 class MedicalReportSerializer(serializers.ModelSerializer):
     class Meta:
         model = MedicalReport
         fields = '__all__'
+        read_only_fields = ['user', 'created_at']
 
-
+    def create(self, validated_data):
+        # user is already being passed in from view: serializer.save(user=request.user)
+        return super().create(validated_data)

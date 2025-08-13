@@ -1,0 +1,20 @@
+﻿,precision,recall,f1-score,support
+Homa_ya_Dengue,1.0,1.0,1.0,8.0
+Homa_ya_Ini_A,0.0,0.0,0.0,8.0
+Homa_ya_Ini_B,0.5,1.0,0.6666666666666666,8.0
+Homa_ya_Manjano,1.0,1.0,1.0,8.0
+Homa_ya_Matumbo,1.0,1.0,1.0,8.0
+Kaswende,1.0,1.0,1.0,8.0
+Kichocho,1.0,1.0,1.0,8.0
+Kichocho_cha_Tumbo,1.0,1.0,1.0,8.0
+Kifua_Kikuu,1.0,1.0,1.0,8.0
+Kipindupindu,1.0,1.0,1.0,8.0
+Kisonono,1.0,1.0,1.0,8.0
+Maambukizi_ya_Njia_ya_Mkojo,1.0,1.0,1.0,8.0
+Malaria,1.0,1.0,1.0,8.0
+Surua,1.0,1.0,1.0,8.0
+Trikomonasi,1.0,1.0,1.0,8.0
+UKIMWI,1.0,1.0,1.0,8.0
+accuracy,0.9375,0.9375,0.9375,0.9375
+macro avg,0.90625,0.9375,0.9166666666666666,128.0
+weighted avg,0.90625,0.9375,0.9166666666666666,128.0
