@@ -5,6 +5,7 @@ from account.views import RegisterView, CustomTokenObtainPairView, logout_view, 
 from rest_framework_simplejwt.views import TokenRefreshView
 from appointment.views import *
 from voicenote.views import *
+from feedback.views import *
 
 urlpatterns = [
     # Chat & Session Endpoints
@@ -49,6 +50,8 @@ urlpatterns = [
 
     path('reports/', medical_report_view),  # GET all, POST
     path('reports/<int:report_id>/', medical_report_view),  # GET by ID, DELETE
+
+    path('feedback/', submit_feedback),  # GET all, POST
 ]
 
 

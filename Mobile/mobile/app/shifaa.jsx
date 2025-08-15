@@ -5,7 +5,7 @@ import {
   TextInput, TouchableOpacity, KeyboardAvoidingView,
   Platform, TouchableWithoutFeedback, Keyboard,
   ActivityIndicator, ScrollView, Animated, Easing,
-  FlatList
+  FlatList, Image
 } from 'react-native';
 
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,6 +21,8 @@ import { Ionicons } from '@expo/vector-icons';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import IconFeather from 'react-native-vector-icons/Feather';
 import { Card } from 'react-native-paper';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useRouter } from 'expo-router';
 
 // ---------- CONFIG ----------
@@ -157,7 +159,7 @@ const ChatDemo = () => {
       setCurrentQuestion(starter);
     } catch (err) {
       const errorMessage = err.response?.data?.message || (err.request ? 'Taarifa ya mtandao imekosekana. Angalia mtandao wako.' : 'Imeshindikana kuanza kikao.');
-      showErrorModal('Samahani, haikuweza kuanza kikao', `Daktari AI: ${errorMessage}\n\nJaribu tena au angalia muunganisho wako wa intaneti.`);
+      showErrorModal('Samahani, haikuweza kuanza kikao', `Shifaa AI: ${errorMessage}\n\nJaribu tena au angalia muunganisho wako wa intaneti.`);
     } finally {
       if (isMounted) setIsLoading(false);
     }
@@ -492,21 +494,22 @@ const ChatDemo = () => {
               <Card.Content>
                 <View style={styles.cardHeader}>
                   <Icon name="medical-services" size={30} color={PRIMARY_COLOR} />
-                  <Text style={styles.cardTitle}>Smart Doctor Assistant</Text>
+                  <Text style={styles.cardTitle}>Shifaa AI</Text>
                 </View>
                 <Text style={styles.cardText}>
-                  Get personalized medical advice and possible diagnoses based on your symptoms.
+                  Pata Ushauri wa kitaalamu na dalili za ugonjwa kutokanan na dalili zako
+                  
                 </Text>
               </Card.Content>
             </Card>
 
             <TouchableOpacity style={[styles.actionButton, { backgroundColor: SUCCESS_COLOR }]} onPress={() => navigation.navigate('ReportScreen')}>
               <IconFeather name="file-text" size={20} color="#fff" />
-              <Text style={styles.actionButtonText}> Get Report</Text>
+              <Text style={styles.actionButtonText}> Pata Ripoti</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={[styles.actionButton, { backgroundColor: PRIMARY_COLOR }]} onPress={startNewSession} disabled={isLoading}>
-              {isLoading ? <ActivityIndicator color="#fff" /> : (<><Icon name="chat" size={20} color="#fff" /><Text style={styles.actionButtonText}> Start New Session</Text></>)}
+              {isLoading ? <ActivityIndicator color="#fff" /> : (<><Icon name="chat" size={20} color="#fff" /><Text style={styles.actionButtonText}> Anzisha maajadiliano upya</Text></>)}
             </TouchableOpacity>
           </Animated.View>
         </ScrollView>
@@ -515,140 +518,270 @@ const ChatDemo = () => {
       </SafeAreaView>
     );
   }
-
-  // FINAL DIAGNOSIS / REPORT SCREEN — anchored with insets so system bars don't overlap
-  if (isFinalDiagnosis) {
-    const topFlex = 1 - REPORT_BOTTOM_FLEX;
-    return (
-      <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
-        <ScrollView style={styles.reportContainer} contentContainerStyle={{ flexGrow: 1, paddingBottom: Math.max(insets.bottom, 12) }} showsVerticalScrollIndicator={false}>
-          {/* header + patient info (top area) */}
-          <View style={[styles.reportTop, { flex: topFlex }]}>
-            <View style={styles.reportHeader}>
-              <TouchableOpacity onPress={() => router.push('/shifaa')}>
-          <Ionicons name="close" size={28} color="#333" />
+if (isFinalDiagnosis) {
+  const topFlex = 1 - REPORT_BOTTOM_FLEX;
+  return (
+    <SafeAreaView style={[styles.reportContainer, { paddingTop: insets.top, backgroundColor: '#f5f9ff' }]}>
+      {/* Header with Shifaa logo and close button */}
+      <View style={styles.ReportHeader}>
+        <Image 
+          source={require('./../assets/shifaa.png')}
+          style={styles.logo} 
+          resizeMode="contain"
+        />
+        <TouchableOpacity 
+          style={styles.reportCloseButton}
+          onPress={() => router.push('/shifaa')}
+        >
+          <Ionicons name="close-circle" size={28} color={PRIMARY_COLOR} />
         </TouchableOpacity>
-              <Text style={styles.reportTitle}>Ripoti kutokana na uchunguzi</Text>
-              <Text style={styles.reportDate}>{formatDate()}</Text>
-            </View>
+      </View>
 
+      <ScrollView 
+        style={styles.reportContainer} 
+        contentContainerStyle={{ 
+          flexGrow: 1, 
+          paddingBottom: Math.max(insets.bottom, 16) 
+        }} 
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Main report card */}
+        <View style={styles.mainReportCard}>
+          {/* Report header with title and decorative elements */}
+          <View style={styles.reportHeader}>
+            <View style={styles.headerDecoration} />
+            <Text style={styles.reportTitle}>Ripoti ya Afya - Shifaa</Text>
+            <Text style={styles.reportSubtitle}>Uchambuzi wa kimatibabu</Text>
+            <Text style={styles.reportDate}>{formatDate()}</Text>
+            <View style={styles.headerDecoration} />
+          </View>
+
+          {/* Patient information section */}
+          <Card style={[styles.reportSection, styles.patientInfoCard]}>
+            <Card.Content>
+              <View style={styles.sectionHeader}>
+                <Icon name="person" size={24} color="#fff" />
+                <Text style={[styles.sectionTitle, { color: '#fff' }]}>Taarifa za Mgonjwa</Text>
+              </View>
+              <View style={styles.infoGrid}>
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>Jina:</Text>
+                  <Text style={styles.infoValue}>{user?.name || 'Haijatolewa'}</Text>
+                </View>
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>Email:</Text>
+                  <Text style={styles.infoValue}>{user?.email || 'Haijatolewa'}</Text>
+                </View>
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>ID:</Text>
+                  <Text style={styles.infoValue}>#{Math.random().toString(36).substr(2, 8).toUpperCase()}</Text>
+                </View>
+              </View>
+            </Card.Content>
+          </Card>
+
+          {/* Reported symptoms */}
+          <Card style={styles.reportSection}>
+            <Card.Content>
+              <View style={styles.sectionHeader}>
+                <Icon name="warning" size={24} color={WARNING_COLOR} />
+                <Text style={styles.sectionTitle}>Dalili Zilizoripotiwa</Text>
+              </View>
+              {Array.isArray(symptoms) && symptoms.length > 0 ? (
+                <View style={styles.symptomsGrid}>
+                  {symptoms.map((symptom, idx) => (
+                    <View key={idx} style={styles.symptomPill}>
+                      <Icon name="fiber-manual-record" size={10} color={DANGER_COLOR} />
+                      <Text style={styles.symptomText}>{String(symptom).replace(/_/g, ' ')}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <Text style={styles.emptyText}>Hakuna dalili zilizoripotiwa</Text>
+              )}
+            </Card.Content>
+          </Card>
+
+          {/* Diagnosis summary */}
+          <Card style={[styles.reportSection, styles.diagnosisCard]}>
+            <Card.Content>
+              <View style={styles.sectionHeader}>
+                <Icon name="healing" size={24} color="#fff" />
+                <Text style={[styles.sectionTitle, { color: '#fff' }]}>Muhtasari wa Uchunguzi</Text>
+              </View>
+              <View style={styles.diagnosisSummaryBox}>
+                <Text style={styles.summaryText}>{currentQuestion}</Text>
+              </View>
+            </Card.Content>
+          </Card>
+
+          {/* Top advice summary */}
+          {topAdvice && (
             <Card style={styles.reportSection}>
               <Card.Content>
                 <View style={styles.sectionHeader}>
-                  <Icon name="person" size={24} color={PRIMARY_COLOR} />
-                  <Text style={styles.sectionTitle}>Taarifa za Mgonjwa</Text>
+                  <Icon name="info" size={24} color={PRIMARY_COLOR} />
+                  <Text style={styles.sectionTitle}>Ushauri Muhimu</Text>
                 </View>
-                <View style={styles.infoRow}><Text style={styles.infoLabel}>Jina:</Text><Text style={styles.infoValue}>{user?.name || 'Not Provided'}</Text></View>
-                <View style={styles.infoRow}><Text style={styles.infoLabel}>Email:</Text><Text style={styles.infoValue}>{user?.email || 'Not Provided'}</Text></View>
+                <View style={styles.adviceBox}>
+                  {typeof topAdvice === 'string' ? (
+                    <Text style={styles.adviceText}>{topAdvice}</Text>
+                  ) : (
+                    <>
+                      {topAdvice.maelezo_fupi && (
+                        <Text style={styles.adviceText}>{topAdvice.maelezo_fupi}</Text>
+                      )}
+                      {topAdvice.dalili_za_kuangalia && (
+                        <View style={styles.adviceDetail}>
+                          <Icon name="remove-red-eye" size={16} color={WARNING_COLOR} />
+                          <Text style={styles.adviceDetailText}>
+                            <Text style={{ fontWeight: 'bold' }}>Dalili za kuangalia:</Text> {topAdvice.dalili_za_kuangalia.join('; ')}
+                          </Text>
+                        </View>
+                      )}
+                      {topAdvice.vipimo && (
+                        <View style={styles.adviceDetail}>
+                          <Icon name="medical-services" size={16} color={PRIMARY_COLOR} />
+                          <Text style={styles.adviceDetailText}>
+                            <Text style={{ fontWeight: 'bold' }}>Vipimo vinapendekezwa:</Text> {topAdvice.vipimo.join('; ')}
+                          </Text>
+                        </View>
+                      )}
+                    </>
+                  )}
+                </View>
               </Card.Content>
             </Card>
-          </View>
+          )}
 
-          {/* bottom area - diagnosis anchored near bottom */}
-          <View style={[styles.reportBottomWrapper, { flex: REPORT_BOTTOM_FLEX, paddingBottom: Math.max(insets.bottom, 12) }]}>
-            <View style={styles.reportBottom}>
-              {/* reported symptoms */}
-              <Card style={styles.reportSection}>
-                <Card.Content>
-                  <View style={styles.sectionHeader}>
-                    <Icon name="warning" size={24} color={WARNING_COLOR} />
-                    <Text style={styles.sectionTitle}>Dalili Ziliripotiwa</Text>
-                  </View>
-                  <View style={styles.symptomsContainer}>
-                    {Array.isArray(symptoms) && symptoms.length > 0 ? symptoms.map((symptom, idx) => (
-                      <View key={idx} style={styles.symptomItem}><Icon name="fiber-manual-record" size={12} color={PRIMARY_COLOR} /><Text style={styles.symptomText}>{String(symptom).replace(/_/g, ' ')}</Text></View>
-                    )) : (<Text style={styles.smallText}>Hakuna dalili</Text>)}
-                  </View>
-                </Card.Content>
-              </Card>
-
-              {/* top advice summary (if present) */}
-              {topAdvice ? (
-                <Card style={styles.reportSection}>
-                  <Card.Content>
-                    <View style={styles.sectionHeader}>
-                      <Icon name="info" size={24} color={PRIMARY_COLOR} />
-                      <Text style={styles.sectionTitle}>Ushauri Muhimu (Kwa Utabiri Bora)</Text>
-                    </View>
-                    {typeof topAdvice === 'string' ? (
-                      <Text style={styles.summaryText}>{topAdvice}</Text>
-                    ) : (
-                      <>
-                        {topAdvice.maelezo_fupi ? <Text style={styles.summaryText}>{topAdvice.maelezo_fupi}</Text> : null}
-                        {topAdvice.dalili_za_kuangalia ? <Text style={[styles.smallText, { marginTop: 8 }]}>Dalili za kuangalia: {topAdvice.dalili_za_kuangalia.join('; ')}</Text> : null}
-                        {topAdvice.vipimo ? <Text style={[styles.smallText, { marginTop: 8 }]}>Vipimo: {topAdvice.vipimo.join('; ')}</Text> : null}
-                      </>
-                    )}
-                  </Card.Content>
-                </Card>
-              ) : null}
-
-              {/* diagnosis summary */}
-              <Card style={styles.reportSection}>
-                <Card.Content>
-                  <View style={styles.sectionHeader}>
-                    <Icon name="healing" size={24} color={DANGER_COLOR} />
-                    <Text style={styles.sectionTitle}>Muhtasari wa Uchunguzi</Text>
-                  </View>
-                  <Text style={styles.summaryText}>{currentQuestion}</Text>
-                </Card.Content>
-              </Card>
-
-              {/* possible conditions */}
-              <Card style={styles.reportSection}>
-                <Card.Content>
-                  <View style={styles.sectionHeader}>
-                    <Icon name="coronavirus" size={24} color={DANGER_COLOR} />
-                    <Text style={styles.sectionTitle}>Ugonjwa Unaowezekana</Text>
-                  </View>
-                  {Array.isArray(possibleDiseases) && possibleDiseases.length > 0 ? possibleDiseases.map((d, i) => (
+          {/* Possible conditions */}
+          <Card style={styles.reportSection}>
+            <Card.Content>
+              <View style={styles.sectionHeader}>
+                <Icon name="coronavirus" size={24} color={DANGER_COLOR} />
+                <Text style={styles.sectionTitle}>Magonjwa Yanayowezekana</Text>
+              </View>
+              
+              {Array.isArray(possibleDiseases) && possibleDiseases.length > 0 ? (
+                <View style={styles.diseasesContainer}>
+                  {possibleDiseases.map((d, i) => (
                     <View key={i} style={styles.diseaseCard}>
-                      <Text style={styles.diseaseName}>{d?.disease || '—'}</Text>
-                      {d?.probability ? <Text style={styles.detailValue}>Uwezekano: {(d.probability*100).toFixed(0)}%</Text> : null}
-                      {/* show advice fields if available */}
+                      <View style={styles.diseaseHeader}>
+                        <Text style={styles.diseaseName}>{d?.disease || '—'}</Text>
+                        {d?.probability && (
+                          <View style={styles.probabilityBadge}>
+                            <Text style={styles.probabilityText}>{(d.probability*100).toFixed(0)}%</Text>
+                          </View>
+                        )}
+                      </View>
+                      
+                      {/* Advice sections */}
                       {d?.advice && typeof d.advice === 'object' ? (
-                        <>
-                          {d.advice.maelezo_fupi ? <Text style={styles.detailValue}>Maelezo: {d.advice.maelezo_fupi}</Text> : null}
-                          {d.advice.tiba ? <Text style={styles.detailValue}>Tiba: {Array.isArray(d.advice.tiba) ? d.advice.tiba.join('; ') : d.advice.tiba}</Text> : null}
-                          {d.advice.ushauri_wa_nyumbani ? <Text style={styles.detailValue}>Ushauri: {Array.isArray(d.advice.ushauri_wa_nyumbani) ? d.advice.ushauri_wa_nyumbani.join('; ') : d.advice.ushauri_wa_nyumbani}</Text> : null}
-                        </>
+                        <View style={styles.diseaseDetails}>
+                          {d.advice.maelezo_fupi && (
+                            <View style={styles.detailRow}>
+                              <Icon name="description" size={16} color={SECONDARY_COLOR} />
+                              <Text style={styles.detailText}>{d.advice.maelezo_fupi}</Text>
+                            </View>
+                          )}
+                          {d.advice.tiba && (
+                            <View style={styles.detailRow}>
+                              <Icon name="medication" size={16} color={PRIMARY_COLOR} />
+                              <Text style={styles.detailText}>
+                                <Text style={{ fontWeight: 'bold' }}>Tiba:</Text> {Array.isArray(d.advice.tiba) ? d.advice.tiba.join('; ') : d.advice.tiba}
+                              </Text>
+                            </View>
+                          )}
+                          {d.advice.ushauri_wa_nyumbani && (
+                            <View style={styles.detailRow}>
+                              <Icon name="home-work" size={16} color={SUCCESS_COLOR} />
+                              <Text style={styles.detailText}>
+                                <Text style={{ fontWeight: 'bold' }}>Ushauri wa nyumbani:</Text> {Array.isArray(d.advice.ushauri_wa_nyumbani) ? d.advice.ushauri_wa_nyumbani.join('; ') : d.advice.ushauri_wa_nyumbani}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
                       ) : d?.advice && typeof d.advice === 'string' ? (
-                        <Text style={styles.detailValue}>Ushauri: {d.advice}</Text>
+                        <View style={styles.detailRow}>
+                          <Icon name="lightbulb-outline" size={16} color={WARNING_COLOR} />
+                          <Text style={styles.detailText}>{d.advice}</Text>
+                        </View>
                       ) : null}
                     </View>
-                  )) : (<Text style={styles.smallText}>Hakuna</Text>)}
-                </Card.Content>
-              </Card>
+                  ))}
+                </View>
+              ) : (
+                <Text style={styles.emptyText}>Hakuna magonjwa yaliyotambuliwa</Text>
+              )}
+            </Card.Content>
+          </Card>
 
-              <Card style={styles.reportSection}>
-                <Card.Content>
-                  <View style={styles.sectionHeader}>
-                    <Icon name="lightbulb-outline" size={24} color={SUCCESS_COLOR} />
-                    <Text style={styles.sectionTitle}>Mapendekezo</Text>
-                  </View>
-                  <View style={styles.recommendationItem}><Icon name="check-circle" size={18} color={SUCCESS_COLOR} /><Text style={styles.recommendationText}>Wasiliana na mtaalamu wa afya kwa uhakiki</Text></View>
-                  <View style={styles.recommendationItem}><Icon name="check-circle" size={18} color={SUCCESS_COLOR} /><Text style={styles.recommendationText}>Fuata mwongozo ukihisi dalili zinaendelea</Text></View>
-                </Card.Content>
-              </Card>
-
-              <View style={styles.reportFooter}><Text style={styles.footerText}>Ripoti imeandaliwa Shifaa AI</Text><Text style={styles.footerNote}>Si mbadala wa dhana ya daktari wa kweli</Text></View>
-
-              <View style={styles.reportActions}>
-                <TouchableOpacity style={[styles.reportButton, { backgroundColor: PRIMARY_COLOR }]} onPress={() => { setSessionId(null); setIsFinalDiagnosis(false); setAnswerCount(0); setPossibleDiseases([]); setTopAdvice(null); }}>
-                  <Icon name="refresh" size={20} color="#fff" /><Text style={styles.reportButtonText}> New Diagnosis</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.reportButton, { backgroundColor: SUCCESS_COLOR }]} onPress={handleSaveReport}>
-                  <IconFeather name="download" size={20} color="#fff" /><Text style={styles.reportButtonText}> Save Report</Text>
-                </TouchableOpacity>
+          {/* Recommendations */}
+          <Card style={styles.reportSection}>
+            <Card.Content>
+              <View style={styles.sectionHeader}>
+                <Icon name="lightbulb-outline" size={24} color={SUCCESS_COLOR} />
+                <Text style={styles.sectionTitle}>Mapendekezo</Text>
               </View>
-            </View>
+              <View style={styles.recommendationsList}>
+                <View style={styles.recommendationItem}>
+                  <Icon name="check-circle" size={18} color={SUCCESS_COLOR} />
+                  <Text style={styles.recommendationText}>Wasiliana na mtaalamu wa afya kwa uhakiki wa kina</Text>
+                </View>
+                <View style={styles.recommendationItem}>
+                  <Icon name="check-circle" size={18} color={SUCCESS_COLOR} />
+                  <Text style={styles.recommendationText}>Fuata mwongozo ukihisi dalili zinaendelea au kuwa mbaya</Text>
+                </View>
+                <View style={styles.recommendationItem}>
+                  <Icon name="check-circle" size={18} color={SUCCESS_COLOR} />
+                  <Text style={styles.recommendationText}>Enda kwenye kituo cha afya karibu nawe ikiwa dalili ni kali</Text>
+                </View>
+              </View>
+            </Card.Content>
+          </Card>
+
+          {/* Footer */}
+          <View style={styles.reportFooter}>
+            <Image 
+              source={require('./../assets/shifaa.png')}
+              style={styles.watermark} 
+              resizeMode="contain"
+            />
+            <Text style={styles.footerText}>Ripoti hii imeandaliwa na Shifaa AI</Text>
+            <Text style={styles.footerNote}>*Ripoti hii si mbadala wa ushauri wa daktari wa kweli</Text>
+            <Text style={styles.footerNote}>© {new Date().getFullYear()} Shifaa. Haki zote zimehifadhiwa</Text>
           </View>
-        </ScrollView>
-        <NotificationBanner />
-        <ErrorModal />
-      </SafeAreaView>
-    );
-  }
+        </View>
+
+        {/* Action buttons */}
+        <View style={styles.reportActions}>
+          <TouchableOpacity 
+            style={[styles.reportButton, styles.secondaryButton]}
+            onPress={() => { 
+              setSessionId(null); 
+              setIsFinalDiagnosis(false); 
+              setAnswerCount(0); 
+              setPossibleDiseases([]); 
+              setTopAdvice(null); 
+            }}
+          >
+            <Icon name="refresh" size={20} color={PRIMARY_COLOR} />
+            <Text style={[styles.reportButtonText, { color: PRIMARY_COLOR }]}> Uchunguzi Mpya</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.reportButton, styles.primaryButton]}
+            onPress={handleSaveReport}
+          >
+            <IconFeather name="download" size={20} color="#fff" />
+            <Text style={styles.reportButtonText}> Hifadhi Ripoti</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+      <NotificationBanner />
+      <ErrorModal />
+    </SafeAreaView>
+  );
+}
 
   // Chat UI while diagnosing (unchanged except uses showErrorModal / showNotification)
   return (
@@ -659,13 +792,28 @@ const ChatDemo = () => {
             <TouchableOpacity onPress={() => router.push('/')} style={styles.backButton}>
               <Ionicons name="arrow-back" size={24} color="#fff" />
             </TouchableOpacity>
-            <View style={styles.headerRow}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Icon name="android" size={20} color={PRIMARY_COLOR} />
-                <Text style={[styles.messageTitle, { marginLeft: 8 }]}> Smart Doctor</Text>
-              </View>
-    
+        <View style={styles.headerContainer}>
+              <View style={styles.headerContainer}>
+  <View style={styles.headerRow}>
+    {/* Back button */}
+    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+      <MaterialCommunityIcons name="arrow-left" size={26} color="#1976D2" />
+    </TouchableOpacity>
+
+    {/* Icon + Title + Subtitle */}
+    <View style={styles.centeredTitle}>
+      <MaterialCommunityIcons name="stethoscope" size={26} color="#1976D2" />
+      <Text style={styles.messageTitle}>Shifaa</Text>
+      <Text style={styles.subTitle}>Ushauri wa Afya kwa Haraka</Text>
+    </View>
+
+    {/* Optional right space */}
+    <View style={{ width: 26 }} />
+  </View>
+</View>
+
             </View>
+
 
             <Animated.View style={[styles.chatContent, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
               <Card style={[styles.messageCard, styles.botMessage]}>
@@ -728,14 +876,83 @@ const styles = StyleSheet.create({
   actionButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 12, borderRadius: 10, marginVertical: 6, width: '90%' },
   actionButtonText: { color: '#fff', fontWeight: '600', marginLeft: 8 },
 
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 6, paddingVertical: 8 },
-  messageTitle: { fontWeight: '700', fontSize: 16 },
+  headerContainer: {
+  backgroundColor: '#E3F2FD', // soft health blue
+  paddingVertical: 12,
+  paddingHorizontal: 15,
+  elevation: 4, // Android shadow
+  shadowColor: '#000', // iOS shadow
+  shadowOpacity: 0.1,
+  shadowRadius: 3,
+  borderBottomLeftRadius: 15,
+  borderBottomRightRadius: 15,
+},
+
+headerRow: {
+  flexDirection: 'row',
+  alignItems: 'center',
+},
+
+backButton: {
+  padding: 5,
+  borderRadius: 50,
+  backgroundColor: '#fff',
+  elevation: 2,
+},
+
+centeredTitle: {
+  flex: 1,
+  alignItems: 'center',
+},
+
+messageTitle: {
+  fontSize: 20,
+  fontWeight: 'bold',
+  color: '#0D47A1',
+  marginTop: 2,
+},
+
+subTitle: {
+  fontSize: 12,
+  color: '#555',
+  marginTop: 2,
+},
+
+
+messageTitle: {
+  fontSize: 20,
+  fontWeight: 'bold',
+  color: '#0D47A1',
+  marginLeft: 2,
+},
+
+subTitle: {
+  fontSize: 12,
+  color: '#555',
+  marginLeft: 52, // aligns with text start
+},
+
+logo: {
+    width: 80,       // Reduced from 100
+    height: 30,      // Reduced from 40
+    marginLeft: 10,
+  },
+  
+  // Watermark styling - smaller and more subtle
+  watermark: {
+    position: 'absolute',
+    opacity: 0.08,    // More transparent (was 0.1)
+    width: '80%',     // Smaller relative width
+    height: 60,       // Much smaller than original 100
+    top: -15,         // Adjusted position
+  },
+
   debugToggle: { marginRight: 8, backgroundColor: SECONDARY_COLOR, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, flexDirection: 'row', alignItems: 'center' },
   debugToggleText: { color: '#fff', marginLeft: 6, fontWeight: '600' },
   refreshButton: { backgroundColor: PRIMARY_COLOR, padding: 8, borderRadius: 8, marginLeft: 8 },
 
   chatContainer: { flex: 1, padding: 12 },
-  chatContent: { flex: 1, justifyContent: 'flex-end', minHeight: '70%' }, // keep bot area lower on screen
+  chatContent: { flex: 1, minHeight: '4%', justifyContent: 'center' }, // keep bot area lower on screen
   messageCard: { marginBottom: 12, borderRadius: 12 },
   // BOT MESSAGE: now blue background
   botMessage: { backgroundColor: PRIMARY_COLOR, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 12, elevation: 2 },
@@ -759,56 +976,328 @@ const styles = StyleSheet.create({
 
   
 
-  // REPORT / layout updates
-  reportContainer: { flex: 1, paddingHorizontal: 12, backgroundColor: '#fff' },
-  reportTop: { justifyContent: 'flex-start' },
-  reportHeader: { marginBottom: 12 },
-  reportTitle: { fontSize: 20, fontWeight: '700', color: PRIMARY_COLOR },
-  reportDate: { color: SECONDARY_COLOR, fontSize: 12 },
+  // // REPORT / layout updates
+  // reportContainer: { flex: 1, paddingHorizontal: 12, backgroundColor: '#fff' },
+  // reportTop: { justifyContent: 'flex-start' },
+  // reportHeader: { marginBottom: 12 },
+  // reportTitle: { fontSize: 20, fontWeight: '700', color: PRIMARY_COLOR },
+  // reportDate: { color: SECONDARY_COLOR, fontSize: 12 },
 
-  reportBottomWrapper: {
-    justifyContent: 'flex-end',
+  // reportBottomWrapper: {
+  //   justifyContent: 'flex-end',
+  // },
+
+  // reportBottom: {
+  //   backgroundColor: '#fff',
+  //   borderTopLeftRadius: 14,
+  //   borderTopRightRadius: 14,
+  //   paddingTop: 12,
+  //   paddingHorizontal: 12,
+  //   elevation: 4,
+  //   shadowColor: '#000',
+  //   shadowOpacity: 0.06,
+  //   shadowRadius: 8,
+  //   shadowOffset: { width: 0, height: -3 },
+  // },
+
+  // reportSection: { marginBottom: 12 },
+  // sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  // sectionTitle: { fontWeight: '700', marginLeft: 8 },
+  // infoRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
+  // infoLabel: { color: SECONDARY_COLOR },
+  // infoValue: { fontWeight: '600' },
+
+  // symptomsContainer: { flexDirection: 'row', flexWrap: 'wrap' },
+  // symptomItem: { flexDirection: 'row', alignItems: 'center', marginRight: 8, marginBottom: 6 },
+  // symptomText: { marginLeft: 6 },
+  // summaryText: { lineHeight: 20 },
+
+  // diseaseCard: { backgroundColor: '#fff', padding: 10, borderRadius: 8, marginBottom: 8 },
+  // diseaseName: { fontWeight: '700', marginBottom: 6 },
+  // detailSection: { marginBottom: 6 },
+  // detailTitle: { fontWeight: '700' },
+  // detailValue: { color: SECONDARY_COLOR },
+
+  // recommendationItem: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
+  // recommendationText: { marginLeft: 8 },
+  // reportFooter: { alignItems: 'center', marginTop: 12 },
+  // footerText: { color: SECONDARY_COLOR },
+  // footerNote: { color: SECONDARY_COLOR, fontSize: 12 },
+  // reportActions: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 },
+  // reportButton: { flex: 1, marginHorizontal: 6, padding: 12, borderRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  // reportButtonText: { color: '#fff', fontWeight: '700', marginLeft: 8 },
+
+
+  // -----------------------------------------report styles ------------------------------------------
+  
+  reportContainer: {
+    flex: 1,
+    backgroundColor: '#f5f9ff',
   },
-
-  reportBottom: {
+  reportHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     backgroundColor: '#fff',
-    borderTopLeftRadius: 14,
-    borderTopRightRadius: 14,
-    paddingTop: 12,
-    paddingHorizontal: 12,
-    elevation: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  repprtLogo: {
+    width: 100,
+    height: 40,
+  },
+  reportCloseButton: {
+    padding: 4,
+  },
+  mainReportCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    margin: 12,
+    padding: 16,
     shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: -3 },
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  reportHeader: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  reportheaderDecoration: {
+    height: 4,
+    width: 40,
+    backgroundColor: PRIMARY_COLOR,
+    borderRadius: 2,
+    marginVertical: 8,
+  },
+  reportTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: PRIMARY_COLOR,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  reportSubtitle: {
+    fontSize: 14,
+    color: SECONDARY_COLOR,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  reportDate: {
+    color: SECONDARY_COLOR,
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  patientInfoCard: {
+    backgroundColor: PRIMARY_COLOR,
+    marginBottom: 16,
+  },
+  infoGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  infoItem: {
+    width: '48%',
+    marginBottom: 8,
+  },
+  infoLabel: {
+    color: '#ffffffaa',
+    fontSize: 12,
+  },
+  infoValue: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  reportSection: {
+    marginBottom: 16,
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontWeight: '700',
+    marginLeft: 8,
+    fontSize: 16,
+  },
+  symptomsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  symptomPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffeeee',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  symptomText: {
+    marginLeft: 6,
+    fontSize: 12,
+    color: DANGER_COLOR,
+  },
+  diagnosisCard: {
+    backgroundColor: PRIMARY_COLOR,
+  },
+  diagnosisSummaryBox: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    padding: 12,
+    borderRadius: 8,
+  },
+  summaryText: {
+    color: '#fff',
+    lineHeight: 22,
+  },
+  adviceBox: {
+    backgroundColor: '#f8f9ff',
+    padding: 12,
+    borderRadius: 8,
+  },
+  adviceText: {
+    lineHeight: 22,
+    color: '#333',
+  },
+  adviceDetail: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  adviceDetailText: {
+    marginLeft: 8,
+    color: '#555',
+    fontSize: 13,
+    flex: 1,
+  },
+  diseasesContainer: {
+    marginTop: 8,
+  },
+  diseaseCard: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#eee',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+  },
+  diseaseHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  diseaseName: {
+    fontWeight: '700',
+    fontSize: 16,
+    color: DANGER_COLOR,
+  },
+  probabilityBadge: {
+    backgroundColor: '#ffeeee',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  probabilityText: {
+    color: DANGER_COLOR,
+    fontWeight: 'bold',
+    fontSize: 12,
+  },
+  diseaseDetails: {
+    marginTop: 8,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    marginBottom: 8,
+  },
+  detailText: {
+    marginLeft: 8,
+    color: '#555',
+    fontSize: 13,
+    flex: 1,
+  },
+  recommendationsList: {
+    marginTop: 8,
+  },
+  recommendationItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 10,
+  },
+  recommendationText: {
+    marginLeft: 8,
+    color: '#555',
+    fontSize: 14,
+    flex: 1,
+  },
+  emptyText: {
+    color: SECONDARY_COLOR,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    paddingVertical: 12,
+  },
+  reportFooter: {
+    alignItems: 'center',
+    marginTop: 24,
+    marginBottom: 16,
+    position: 'relative',
+  },
+  watermark: {
+    position: 'absolute',
+    opacity: 0.1,
+    width: '100%',
+    height: 100,
+    top: -30,
+  },
+  footerText: {
+    color: PRIMARY_COLOR,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  footerNote: {
+    color: SECONDARY_COLOR,
+    fontSize: 11,
+    textAlign: 'center',
+    marginBottom: 2,
+  },
+  reportActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginHorizontal: 12,
+    marginBottom: 16,
+  },
+  reportButton: {
+    flex: 1,
+    padding: 14,
+    borderRadius: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 6,
+  },
+  primaryButton: {
+    backgroundColor: PRIMARY_COLOR,
+  },
+  secondaryButton: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: PRIMARY_COLOR,
+  },
+  reportButtonText: {
+    color: '#fff',
+    fontWeight: '700',
+    marginLeft: 8,
   },
 
-  reportSection: { marginBottom: 12 },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-  sectionTitle: { fontWeight: '700', marginLeft: 8 },
-  infoRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  infoLabel: { color: SECONDARY_COLOR },
-  infoValue: { fontWeight: '600' },
-
-  symptomsContainer: { flexDirection: 'row', flexWrap: 'wrap' },
-  symptomItem: { flexDirection: 'row', alignItems: 'center', marginRight: 8, marginBottom: 6 },
-  symptomText: { marginLeft: 6 },
-  summaryText: { lineHeight: 20 },
-
-  diseaseCard: { backgroundColor: '#fff', padding: 10, borderRadius: 8, marginBottom: 8 },
-  diseaseName: { fontWeight: '700', marginBottom: 6 },
-  detailSection: { marginBottom: 6 },
-  detailTitle: { fontWeight: '700' },
-  detailValue: { color: SECONDARY_COLOR },
-
-  recommendationItem: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
-  recommendationText: { marginLeft: 8 },
-  reportFooter: { alignItems: 'center', marginTop: 12 },
-  footerText: { color: SECONDARY_COLOR },
-  footerNote: { color: SECONDARY_COLOR, fontSize: 12 },
-  reportActions: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 },
-  reportButton: { flex: 1, marginHorizontal: 6, padding: 12, borderRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
-  reportButtonText: { color: '#fff', fontWeight: '700', marginLeft: 8 },
 
   // Modal styles
   modalOverlay: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', alignItems: 'center', zIndex: 9999 },

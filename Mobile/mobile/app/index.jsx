@@ -381,9 +381,9 @@ export default function Home() {
 
         <TouchableOpacity 
           style={styles.navItem} 
-          onPress={() => handlePress('/appointments')}
+          onPress={() => handlePress('/feedback/feedback')}
         >
-          <Ionicons name="calendar" size={24} color="#94A3B8" />
+          <Ionicons name="message-text-outlin" size={24} color="#94A3B8" />
           <Text style={styles.navText}>Miadi</Text>
         </TouchableOpacity>
 
