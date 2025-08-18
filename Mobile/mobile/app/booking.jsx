@@ -12,6 +12,8 @@ import {
   TextInput,
   Alert,
   Platform,
+  ScrollView,
+  Dimensions
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
@@ -20,6 +22,7 @@ import { BASE_URL } from "@env";
 import { Calendar } from "react-native-calendars";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useRouter } from "expo-router";
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function BookingPage() {
   const router = useRouter();
@@ -29,7 +32,7 @@ export default function BookingPage() {
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
   const [showTimePicker, setShowTimePicker] = useState(false);
-  const [selectedTime, setSelectedTime] = useState(null);
+  const [selectedTime, setSelectedTime] = useState(new Date());
   const [reason, setReason] = useState("");
   const [token, setToken] = useState(null);
 
@@ -65,7 +68,7 @@ export default function BookingPage() {
   const openBookingModal = (doctor) => {
     setSelectedDoctor(doctor);
     setSelectedDate(null);
-    setSelectedTime(null);
+    setSelectedTime(new Date());
     setReason("");
     setModalVisible(true);
   };
@@ -94,7 +97,7 @@ export default function BookingPage() {
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      Alert.alert("Appointment booked successfully!");
+      Alert.alert("Success", "Appointment booked successfully!");
       setModalVisible(false);
     } catch (error) {
       Alert.alert(
@@ -106,180 +109,444 @@ export default function BookingPage() {
 
   const renderDoctor = ({ item }) => (
     <View style={styles.card}>
-      <View style={styles.info}>
-        <Text style={styles.name}>
-          {item.doctor_name || item.doctor_email || "Unknown Doctor"}
-        </Text>
-        <Text style={styles.specialty}>
-          {item.specialization || "Specialization not set"}
-        </Text>
-        <Text style={styles.time}>
-          {item.day_of_week || "Day not set"} | {item.start_time} - {item.end_time}
-        </Text>
-        {item.notes ? <Text style={styles.notes}>{item.notes}</Text> : null}
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => openBookingModal(item)}
-        >
-          <Text style={styles.buttonText}>Book Now</Text>
-          <Ionicons name="calendar" size={18} color="white" />
-        </TouchableOpacity>
+      <View style={styles.cardHeader}>
+        <View style={styles.avatar}>
+          <Ionicons name="person" size={24} color="#fff" />
+        </View>
+        <View style={styles.headerText}>
+          <Text style={styles.name}>
+            {item.doctor_name || item.doctor_email || "Unknown Doctor"}
+          </Text>
+          <Text style={styles.specialty}>
+            {item.specialization || "General Practitioner"}
+          </Text>
+        </View>
       </View>
+      
+      <View style={styles.cardBody}>
+        <View style={styles.infoRow}>
+          <Ionicons name="calendar-outline" size={16} color="#4E8CFF" />
+          <Text style={styles.infoText}>{item.day_of_week || "Flexible schedule"}</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Ionicons name="time-outline" size={16} color="#4E8CFF" />
+          <Text style={styles.infoText}>{item.start_time} - {item.end_time}</Text>
+        </View>
+        {item.notes && (
+          <View style={styles.infoRow}>
+            <Ionicons name="information-circle-outline" size={16} color="#4E8CFF" />
+            <Text style={styles.notes}>{item.notes}</Text>
+          </View>
+        )}
+      </View>
+      
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => openBookingModal(item)}
+      >
+        <Text style={styles.buttonText}>Book Appointment</Text>
+        <Ionicons name="arrow-forward" size={18} color="white" />
+      </TouchableOpacity>
     </View>
   );
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+      <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
 
-      {/* Header with Back and Booking History */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.push("/")}>
-          <Ionicons name="arrow-back" size={28} color="#4E8CFF" />
+      {/* Header */}
+      <LinearGradient
+        colors={['#f8f9fa', '#e9f2ff']}
+        style={styles.header}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+      >
+        <TouchableOpacity 
+          onPress={() => router.push("/")}
+          style={styles.headerButton}
+        >
+          <Ionicons name="arrow-back" size={24} color="#4E8CFF" />
         </TouchableOpacity>
-        <Text style={styles.title}>Available Doctors</Text>
-        <TouchableOpacity onPress={() => router.push("/bookingHistory")}>
-          <Ionicons name="time-outline" size={28} color="#4E8CFF" />
+        <Text style={styles.title}>Find a Doctor</Text>
+        <TouchableOpacity 
+          onPress={() => router.push("/bookingHistory")}
+          style={styles.headerButton}
+        >
+          <Ionicons name="time-outline" size={24} color="#4E8CFF" />
         </TouchableOpacity>
-      </View>
+      </LinearGradient>
 
       {loadingDoctors ? (
-        <ActivityIndicator size="large" color="#4E8CFF" />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#4E8CFF" />
+          <Text style={styles.loadingText}>Loading available doctors...</Text>
+        </View>
       ) : doctors.length === 0 ? (
-        <Text style={{ textAlign: "center", marginTop: 20, color: "#666" }}>
-          No doctors available
-        </Text>
+        <View style={styles.emptyContainer}>
+          <Ionicons name="medkit-outline" size={48} color="#ccc" />
+          <Text style={styles.emptyText}>No doctors available at the moment</Text>
+          <TouchableOpacity 
+            style={styles.refreshButton}
+            onPress={() => fetchDoctors(token)}
+          >
+            <Ionicons name="refresh" size={20} color="#4E8CFF" />
+            <Text style={styles.refreshText}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
       ) : (
         <FlatList
           data={doctors}
           renderItem={renderDoctor}
           keyExtractor={(item, index) => index.toString()}
-          contentContainerStyle={{ paddingBottom: 20 }}
+          contentContainerStyle={styles.listContent}
+          ListHeaderComponent={
+            <Text style={styles.listHeader}>Available Specialists</Text>
+          }
         />
       )}
 
       {/* Booking Modal */}
-      <Modal visible={modalVisible} animationType="slide" transparent={true}>
+      <Modal 
+        visible={modalVisible} 
+        animationType="slide" 
+        transparent={true}
+        onRequestClose={() => setModalVisible(false)}
+      >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
-              Book Appointment with Dr.{" "}
-              {selectedDoctor?.doctor_name || selectedDoctor?.doctor_email || ""}
-            </Text>
-            <Text style={{ marginBottom: 8 }}>Select Date:</Text>
-            <Calendar
-              onDayPress={onDateSelect}
-              markedDates={
-                selectedDate
-                  ? { [selectedDate]: { selected: true, selectedColor: "#4E8CFF" } }
-                  : {}
-              }
-              style={{ marginBottom: 8 }}
-            />
-            <TouchableOpacity
-              style={styles.timePickerButton}
-              onPress={() => setShowTimePicker(true)}
-            >
-              <Text style={styles.timePickerText}>
-                {selectedTime ? selectedTime.toLocaleTimeString() : "Select Time"}
+            <ScrollView contentContainerStyle={styles.modalScrollContent}>
+              <Text style={styles.modalTitle}>
+                Book with Dr. {selectedDoctor?.doctor_name || selectedDoctor?.doctor_email || ""}
               </Text>
-              <Ionicons name="time" size={20} color="#4E8CFF" />
-            </TouchableOpacity>
-            {showTimePicker && (
-              <DateTimePicker
-                value={selectedTime || new Date()}
-                mode="time"
-                display="default"
-                onChange={onTimeChange}
-              />
-            )}
-            <TextInput
-              placeholder="Reason (optional)"
-              value={reason}
-              onChangeText={setReason}
-              style={styles.input}
-              multiline
-              numberOfLines={3}
-            />
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.button, { marginRight: 10 }]}
-                onPress={submitBooking}
-              >
-                <Text style={styles.buttonText}>Confirm</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.button, { backgroundColor: "#EF4444" }]}
-                onPress={() => setModalVisible(false)}
-              >
-                <Text style={styles.buttonText}>Cancel</Text>
-              </TouchableOpacity>
-            </View>
+              
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Select Date</Text>
+                <Calendar
+                  onDayPress={onDateSelect}
+                  markedDates={
+                    selectedDate
+                      ? { 
+                          [selectedDate]: { 
+                            selected: true, 
+                            selectedColor: "#4E8CFF",
+                            selectedTextColor: "#fff"
+                          } 
+                        }
+                      : {}
+                  }
+                  theme={{
+                    backgroundColor: '#fff',
+                    calendarBackground: '#fff',
+                    textSectionTitleColor: '#4E8CFF',
+                    selectedDayBackgroundColor: '#4E8CFF',
+                    selectedDayTextColor: '#fff',
+                    todayTextColor: '#4E8CFF',
+                    dayTextColor: '#2d4150',
+                    textDisabledColor: '#d9e1e8',
+                    dotColor: '#4E8CFF',
+                    selectedDotColor: '#fff',
+                    arrowColor: '#4E8CFF',
+                    monthTextColor: '#4E8CFF',
+                    indicatorColor: '#4E8CFF',
+                    textDayFontFamily: 'System',
+                    textMonthFontFamily: 'System',
+                    textDayHeaderFontFamily: 'System',
+                    textDayFontWeight: '400',
+                    textMonthFontWeight: 'bold',
+                    textDayHeaderFontWeight: '400',
+                    textDayFontSize: 14,
+                    textMonthFontSize: 16,
+                    textDayHeaderFontSize: 14
+                  }}
+                />
+              </View>
+              
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Select Time</Text>
+                <TouchableOpacity
+                  style={styles.timePickerButton}
+                  onPress={() => setShowTimePicker(true)}
+                >
+                  <Ionicons name="time" size={20} color="#4E8CFF" />
+                  <Text style={styles.timePickerText}>
+                    {selectedTime ? selectedTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "Select Time"}
+                  </Text>
+                </TouchableOpacity>
+                {showTimePicker && (
+                  <DateTimePicker
+                    value={selectedTime}
+                    mode="time"
+                    display="spinner"
+                    onChange={onTimeChange}
+                    minuteInterval={15}
+                    textColor="#4E8CFF"
+                  />
+                )}
+              </View>
+              
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Reason for Visit</Text>
+                <TextInput
+                  placeholder="Briefly describe your reason for the appointment"
+                  placeholderTextColor="#999"
+                  value={reason}
+                  onChangeText={setReason}
+                  style={styles.input}
+                  multiline
+                  numberOfLines={4}
+                />
+              </View>
+              
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={() => setModalVisible(false)}
+                >
+                  <Text style={styles.modalButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.confirmButton]}
+                  onPress={submitBooking}
+                  disabled={!selectedDate || !selectedTime}
+                >
+                  <Text style={styles.modalButtonText}>Confirm Booking</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
           </View>
         </View>
       </Modal>
     </SafeAreaView>
   );
 }
+
+const { width } = Dimensions.get('window');
+
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: "#fff" },
+  container: {
+    flex: 1,
+    backgroundColor: "#f8f9fa",
+  },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e1e5e9",
   },
-  title: { fontSize: 24, fontWeight: "bold", color: "#4E8CFF" },
+  headerButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(78, 140, 255, 0.1)'
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#2c3e50",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 10,
+    color: "#7f8c8d",
+    fontSize: 16,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 30,
+  },
+  emptyText: {
+    marginTop: 15,
+    color: "#95a5a6",
+    fontSize: 16,
+    textAlign: "center",
+  },
+  refreshButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 20,
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: 'rgba(78, 140, 255, 0.1)'
+  },
+  refreshText: {
+    marginLeft: 8,
+    color: "#4E8CFF",
+    fontSize: 16,
+  },
+  listContent: {
+    paddingHorizontal: 15,
+    paddingBottom: 20,
+  },
+  listHeader: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#7f8c8d',
+    marginVertical: 15,
+    paddingLeft: 5,
+  },
   card: {
-    backgroundColor: "#f9fafb",
-    borderRadius: 10,
-    marginBottom: 12,
-    padding: 12,
-    borderLeftWidth: 5,
-    borderLeftColor: "#10B981",
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    marginBottom: 15,
+    padding: 15,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  info: { flex: 1 },
-  name: { fontSize: 18, fontWeight: "bold" },
-  specialty: { fontSize: 14, color: "#555", marginBottom: 4 },
-  time: { fontSize: 13, color: "#4E8CFF" },
-  notes: { fontSize: 13, color: "#888", fontStyle: "italic", marginVertical: 4 },
+  cardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#4E8CFF",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  headerText: {
+    flex: 1,
+  },
+  name: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#2c3e50",
+  },
+  specialty: {
+    fontSize: 14,
+    color: "#4E8CFF",
+    fontWeight: '500',
+  },
+  cardBody: {
+    marginVertical: 8,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  infoText: {
+    fontSize: 14,
+    color: "#34495e",
+    marginLeft: 8,
+  },
+  notes: {
+    fontSize: 13,
+    color: "#7f8c8d",
+    marginLeft: 8,
+    fontStyle: "italic",
+  },
   button: {
     flexDirection: "row",
     backgroundColor: "#4E8CFF",
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
     borderRadius: 8,
     alignItems: "center",
-    alignSelf: "flex-start",
-    marginTop: 6,
+    justifyContent: "center",
+    marginTop: 10,
+    alignSelf: 'flex-start',
   },
-  buttonText: { color: "#fff", marginRight: 6 },
+  buttonText: {
+    color: "#fff",
+    fontWeight: "600",
+    marginRight: 8,
+  },
   modalOverlay: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "rgba(0,0,0,0.5)",
   },
-  modalContent: { backgroundColor: "#fff", padding: 20, borderRadius: 10, width: "90%" },
-  modalTitle: { fontSize: 18, fontWeight: "bold", marginBottom: 10 },
+  modalContent: {
+    backgroundColor: "#fff",
+    borderRadius: 15,
+    width: width * 0.9,
+    maxHeight: '80%',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  modalScrollContent: {
+    padding: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#2c3e50",
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  section: {
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#4E8CFF',
+    marginBottom: 10,
+  },
   timePickerButton: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    padding: 10,
+    padding: 12,
     borderWidth: 1,
-    borderColor: "#ccc",
+    borderColor: "#e1e5e9",
     borderRadius: 8,
-    marginBottom: 10,
+    backgroundColor: '#f8f9fa',
   },
-  timePickerText: { fontSize: 14, color: "#333" },
+  timePickerText: {
+    fontSize: 16,
+    color: "#2c3e50",
+    marginLeft: 10,
+  },
   input: {
     borderWidth: 1,
-    borderColor: "#ccc",
+    borderColor: "#e1e5e9",
     borderRadius: 8,
-    padding: 8,
-    marginBottom: 10,
+    padding: 12,
+    backgroundColor: '#f8f9fa',
+    fontSize: 14,
+    color: '#2c3e50',
     textAlignVertical: "top",
+    minHeight: 100,
   },
-  modalButtons: { flexDirection: "row", justifyContent: "flex-end" },
+  modalButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 10,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cancelButton: {
+    backgroundColor: "#f1f2f6",
+    marginRight: 10,
+  },
+  confirmButton: {
+    backgroundColor: "#4E8CFF",
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
 });

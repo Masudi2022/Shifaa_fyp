@@ -12,169 +12,182 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   Image,
-  Dimensions
+  Dimensions,
+  ScrollView,
+  SafeAreaView,
+  StatusBar
 } from "react-native";
 import { useRouter } from "expo-router";
 import { AuthContext } from "../context/AuthContext";
-import { BASE_URL } from '@env';
-import { Ionicons } from '@expo/vector-icons'; // Import Ionicons for the eye icon
+import Icon from 'react-native-vector-icons/Ionicons';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
-export default function LoginScreen() {
+const Ingia = () => {
   const { login, isLoading } = useContext(AuthContext);
   const router = useRouter();
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false); // State for password visibility
+  const [baruaPepe, setBaruaPepe] = useState("");
+  const [nenoSiri, setNenoSiri] = useState("");
+  const [inaonyeshaNenoSiri, setInaonyeshaNenoSiri] = useState(false);
 
-  const handleLogin = async () => {
+  const handleIngia = async () => {
+    Keyboard.dismiss();
+    if (!baruaPepe || !nenoSiri) {
+      Alert.alert("Makosa", "Tafadhali jaza barua pepe na nenosiri.");
+      return;
+    }
+
     try {
-      await login(email, password);
+      await login(baruaPepe, nenoSiri);
       router.replace("/");
     } catch (error) {
-      Alert.alert("Login Failed", "Invalid email or password.");
+      Alert.alert("Imeshindikana", "Barua pepe au nenosiri si sahihi.");
     }
   };
 
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  };
-
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-    >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={styles.container}>
-          <View style={styles.header}>
-            <Image 
-              source={require('../assets/login.png')}
-              style={styles.logo}
-              resizeMode="contain"
-            />
-            <Text style={styles.title}>Welcome Back</Text>
-            <Text style={styles.subtitle}>Sign in to continue</Text>
+    <SafeAreaView style={styles.eneoSalama}>
+      <StatusBar backgroundColor="#fff" barStyle="dark-content" />
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 0}
+      >
+        <ScrollView 
+          contentContainerStyle={[
+            styles.mkusanyiko,
+            { minHeight: height - (Platform.OS === 'ios' ? 100 : 60) }
+          ]}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Logo */}
+          <Image 
+            source={require('../assets/shifaa.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+
+          <View style={styles.kichwa}>
+            <Text style={styles.kichwaKichwa}>Karibu Tena</Text>
+            <Text style={styles.maelezo}>Ingia kuendelea kutumia Shifaa</Text>
           </View>
 
-          <View style={styles.formContainer}>
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Email Address</Text>
+          {/* Fomu ya kuingia */}
+          <View style={styles.fomu}>
+            <View style={styles.kikundi}>
+              <Text style={styles.lebo}>Barua Pepe*</Text>
               <TextInput
-                placeholder="Enter your email"
-                style={styles.input}
+                placeholder="Weka barua pepe yako"
+                style={styles.ingizo}
                 autoCapitalize="none"
                 keyboardType="email-address"
-                value={email}
-                onChangeText={setEmail}
-                placeholderTextColor="#999"
+                value={baruaPepe}
+                onChangeText={setBaruaPepe}
+                returnKeyType="next"
+                onSubmitEditing={() => this.nenoSiriInput.focus()}
               />
             </View>
 
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Password</Text>
-              <View style={styles.passwordInputContainer}>
+            <View style={styles.kikundi}>
+              <Text style={styles.lebo}>Nenosiri*</Text>
+              <View style={styles.ingizoNenoSiri}>
                 <TextInput
-                  placeholder="Enter your password"
-                  style={[styles.input, { flex: 1 }]}
-                  secureTextEntry={!showPassword}
-                  value={password}
-                  onChangeText={setPassword}
-                  placeholderTextColor="#999"
+                  placeholder="Weka nenosiri lako"
+                  style={{ flex: 1 }}
+                  secureTextEntry={!inaonyeshaNenoSiri}
+                  value={nenoSiri}
+                  onChangeText={setNenoSiri}
+                  ref={(input) => { this.nenoSiriInput = input; }}
+                  returnKeyType="done"
+                  onSubmitEditing={handleIngia}
                 />
                 <TouchableOpacity 
-                  onPress={togglePasswordVisibility}
-                  style={styles.eyeIcon}
+                  onPress={() => setInaonyeshaNenoSiri(!inaonyeshaNenoSiri)}
+                  style={styles.kitufeChaJicho}
                 >
-                  <Ionicons 
-                    name={showPassword ? "eye-off" : "eye"} 
+                  <Icon 
+                    name={inaonyeshaNenoSiri ? "eye-off" : "eye"} 
                     size={20} 
-                    color="#999" 
+                    color="#888" 
                   />
                 </TouchableOpacity>
               </View>
             </View>
 
             <TouchableOpacity
-              onPress={handleLogin}
-              style={styles.button}
+              onPress={handleIngia}
+              style={styles.kitufe}
               disabled={isLoading}
               activeOpacity={0.8}
             >
               {isLoading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.buttonText}>Login</Text>
+                <Text style={styles.maandishiYaKitufe}>
+                  <Icon name="log-in" size={18} color="#fff" />  Ingia
+                </Text>
               )}
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={() => router.push("/forgot-password")}
-              style={styles.forgotPassword}
+              onPress={() => router.push("/sahau-nenosiri")}
+              style={styles.sahauNenosiri}
             >
-              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+              <Text style={styles.maandishiYaSahauNenosiri}>Umesahau nenosiri?</Text>
             </TouchableOpacity>
           </View>
 
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Don't have an account?</Text>
+          <View style={styles.mwisho}>
+            <Text style={styles.maandishiYaMwisho}>Huna akaunti?</Text>
             <TouchableOpacity
               onPress={() => router.push("/register")}
             >
-              <Text style={styles.registerText}> Register</Text>
+              <Text style={styles.maandishiYaJisajili}> Jisajili</Text>
             </TouchableOpacity>
           </View>
-        </View>
-      </TouchableWithoutFeedback>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
-}
+};
+
+export default Ingia;
 
 const PRIMARY_COLOR = '#1E90FF';
 const SECONDARY_COLOR = '#F8F9FA';
 
-
 const styles = StyleSheet.create({
-  container: {
+  eneoSalama: {
     flex: 1,
-    backgroundColor: SECONDARY_COLOR,
-    justifyContent: 'center',
-    paddingHorizontal: 15,  // Reduced from 30 to give more width
-  },
-  formContainer: {
     backgroundColor: '#fff',
-    borderRadius: 15,
-    padding: 25,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
-    marginHorizontal: 0,  // Added to use full available width
-    width: '100%',       // Ensure it takes full width minus padding
   },
-  header: {
-    alignItems: 'center',
-    marginBottom: 40,
+  mkusanyiko: {
+    flexGrow: 1,
+    padding: 25,
+    justifyContent: 'center',
   },
   logo: {
-    width: width * 0.3,
-    height: width * 0.3,
-    marginBottom: 20,
+    width: width * 0.4,
+    height: width * 0.4,
+    alignSelf: 'center',
+    marginBottom: 10,
   },
-  title: {
+  kichwa: {
+    alignItems: 'center',
+    marginBottom: 30,
+  },
+  kichwaKichwa: {
     fontSize: 28,
     fontWeight: '700',
     color: '#2c3e50',
     marginBottom: 5,
   },
-  subtitle: {
+  maelezo: {
     fontSize: 16,
     color: '#7f8c8d',
   },
-  formContainer: {
+  fomu: {
     backgroundColor: '#fff',
     borderRadius: 15,
     padding: 25,
@@ -183,17 +196,18 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 6,
     elevation: 3,
-  },
-  inputContainer: {
     marginBottom: 20,
   },
-  label: {
+  kikundi: {
+    marginBottom: 20,
+  },
+  lebo: {
     fontSize: 14,
     fontWeight: '600',
     color: '#555',
     marginBottom: 8,
   },
-  input: {
+  ingizo: {
     height: 50,
     backgroundColor: '#fafafa',
     borderRadius: 10,
@@ -202,55 +216,58 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ddd',
   },
-  passwordInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  ingizoNenoSiri: {
+    height: 50,
     backgroundColor: '#fafafa',
     borderRadius: 10,
+    paddingHorizontal: 15,
     borderWidth: 1,
     borderColor: '#ddd',
-    paddingRight: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  eyeIcon: {
+  kitufeChaJicho: {
     padding: 10,
   },
-  button: {
+  kitufe: {
     backgroundColor: PRIMARY_COLOR,
     paddingVertical: 16,
     borderRadius: 10,
     alignItems: 'center',
     marginTop: 10,
+    flexDirection: 'row',
+    justifyContent: 'center',
     shadowColor: PRIMARY_COLOR,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 3,
     elevation: 3,
   },
-  buttonText: {
+  maandishiYaKitufe: {
     color: '#fff',
     fontWeight: '600',
     fontSize: 16,
-    letterSpacing: 0.5,
+    marginLeft: 8,
   },
-  forgotPassword: {
+  sahauNenosiri: {
     alignSelf: 'flex-end',
     marginTop: 15,
   },
-  forgotPasswordText: {
+  maandishiYaSahauNenosiri: {
     color: PRIMARY_COLOR,
     fontSize: 14,
     fontWeight: '500',
   },
-  footer: {
+  mwisho: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 30,
+    marginTop: 20,
   },
-  footerText: {
+  maandishiYaMwisho: {
     color: '#7f8c8d',
     fontSize: 14,
   },
-  registerText: {
+  maandishiYaJisajili: {
     color: PRIMARY_COLOR,
     fontSize: 14,
     fontWeight: '600',

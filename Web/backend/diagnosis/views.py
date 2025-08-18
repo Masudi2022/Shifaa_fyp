@@ -802,44 +802,67 @@ def json_safe(obj):
         return str(obj)
 
 
-
-# ========================================
+from rest_framework.decorators import api_view, parser_classes
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.response import Response
+from rest_framework import status
+from .models import MedicalReport
+from .serializers import MedicalReportSerializer
+from django.http import FileResponse
+import os
 
 @api_view(['GET', 'POST', 'DELETE'])
-@permission_classes([IsAuthenticated])
 @parser_classes([MultiPartParser, FormParser])
 def medical_report_view(request, report_id=None):
     """
     Handles:
     - GET /reports/ → Get all reports for the logged-in user
     - GET /reports/<id>/ → Get specific report
+    - GET /reports/<id>/?download=true → Download PDF
     - POST /reports/ → Create report
     - DELETE /reports/<id>/ → Delete report
     """
 
     # GET (all or single)
     if request.method == 'GET':
+        download = request.query_params.get("download", None)
+
         if report_id:
             try:
                 report = MedicalReport.objects.get(id=report_id, user=request.user)
-                serializer = MedicalReportSerializer(report)
+
+                # ✅ Handle PDF download
+                if download and report.pdf:
+                    pdf_path = report.pdf.path
+                    if os.path.exists(pdf_path):
+                        response = FileResponse(
+                            open(pdf_path, 'rb'), content_type='application/pdf'
+                        )
+                        response['Content-Disposition'] = f'attachment; filename="{os.path.basename(pdf_path)}"'
+                        return response
+                    return Response({"error": "PDF not found"}, status=status.HTTP_404_NOT_FOUND)
+
+                # ✅ Normal JSON response with request context
+                serializer = MedicalReportSerializer(report, context={'request': request})
                 return Response(serializer.data, status=status.HTTP_200_OK)
+
             except MedicalReport.DoesNotExist:
                 return Response({"error": "Report not found"}, status=status.HTTP_404_NOT_FOUND)
         else:
             reports = MedicalReport.objects.filter(user=request.user)
-            serializer = MedicalReportSerializer(reports, many=True)
+            serializer = MedicalReportSerializer(reports, many=True, context={'request': request})
             return Response(serializer.data, status=status.HTTP_200_OK)
 
     # POST (create new)
     elif request.method == 'POST':
         data = request.data.copy()
-        data['user'] = request.user.id
-        serializer = MedicalReportSerializer(data=data)
+        serializer = MedicalReportSerializer(data=data, context={'request': request})
         if serializer.is_valid():
             serializer.save(user=request.user)
-            return Response({"message": "Report saved successfully", "data": serializer.data},
-                            status=status.HTTP_201_CREATED)
+            return Response(
+                {"message": "Report saved successfully", "data": serializer.data},
+                status=status.HTTP_201_CREATED
+            )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     # DELETE (by ID)
@@ -852,8 +875,3 @@ def medical_report_view(request, report_id=None):
             return Response({"message": "Report deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
         except MedicalReport.DoesNotExist:
             return Response({"error": "Report not found or not yours"}, status=status.HTTP_404_NOT_FOUND)
-
-
-
-
-

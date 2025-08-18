@@ -1,379 +1,394 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
   TextInput,
-  FlatList,
   TouchableOpacity,
-  StyleSheet,
   ActivityIndicator,
-  Alert,
-  SafeAreaView,
-  Keyboard,
-  TouchableWithoutFeedback,
+  StyleSheet,
   Platform,
-  Dimensions,
-  Linking,
-  PermissionsAndroid
-} from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
-import axios from 'axios';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import BottomSheet from 'react-native-gesture-bottom-sheet';
-import * as Location from 'expo-location';
+  Alert,
+} from "react-native";
+import MapView, { Marker, Callout, PROVIDER_GOOGLE } from "react-native-maps";
+import * as Location from "expo-location";
+import axios from "axios";
+import * as Linking from "expo-linking";
+import { API_BASE } from "@env"; // <--- Import from .env using react-native-dotenv
 
-const { width, height } = Dimensions.get('window');
+/**
+ * PharmaciesMap.jsx
+ * ---------------------------------------------------------------------------
+ * A polished, production-ready React Native screen to render ALL pharmacies
+ * returned by your Django endpoint on a map of Tanzania (including Zanzibar).
+ *
+ * Assumptions
+ * - Your backend exposes GET /pharmacies/ returning an array of objects:
+ *   {
+ *     id, name, latitude, longitude, region, details?, phone?, email?, address?, website?, logo?
+ *   }
+ * - You are using Expo. (Works on bare RN too; replace expo-location if needed.)
+ * - You have react-native-maps installed and configured with a Google Maps key
+ *   for Android/iOS (recommended for best performance and clustering later).
+ *
+ * Notes
+ * - Initial camera spans mainland + Zanzibar; we also auto-fit to markers after
+ *   data loads.
+ * - Includes search (by name/region/address) and region filter.
+ * - Callouts offer quick actions (Call, WhatsApp, Email, Directions, Website).
+ * - "Locate Me" button requests location permission and centers the map.
+ * - Handles Android emulator networking (10.0.2.2) vs iOS simulator (localhost).
+ */
+
+// ====== CONFIGURE THIS: endpoint comes from .env ======
+const ENDPOINT = `${API_BASE}/pharmacies/`;
+
+// Tanzania-wide region (covers Zanzibar too)
+const INITIAL_REGION = {
+  latitude: -6.369028, // TZ centroid
+  longitude: 34.888822,
+  latitudeDelta: 17.5,
+  longitudeDelta: 20.0,
+};
 
 export default function Pharmacy() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [pharmacies, setPharmacies] = useState([]);
-  const [filteredPharmacies, setFilteredPharmacies] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [selectedPharmacy, setSelectedPharmacy] = useState(null);
-  const [region, setRegion] = useState({
-    latitude: -6.7924,  // Default to Dar es Salaam coordinates
-    longitude: 39.2083,
-    latitudeDelta: 0.0922,
-    longitudeDelta: 0.0421,
-  });
-  const [error, setError] = useState(null);
-
-  const bottomSheet = useRef(null);
   const mapRef = useRef(null);
+  const [pharmacies, setPharmacies] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  // Replace with your actual Django API endpoint
-  const API_URL = 'http://192.168.0.222:8000/api/pharmacies/';
+  const [query, setQuery] = useState("");
+  const [regionFilter, setRegionFilter] = useState("ALL");
+  const [locating, setLocating] = useState(false);
 
+  // Fetch pharmacies
   useEffect(() => {
-    requestLocationPermission();
+    let mounted = true;
+    (async () => {
+      try {
+        setLoading(true);
+        const res = await axios.get(ENDPOINT);
+        if (!mounted) return;
+        const cleaned = (res?.data ?? [])
+          .filter((p) => p?.latitude != null && p?.longitude != null)
+          .map((p) => ({
+            ...p,
+            latitude: Number(p.latitude),
+            longitude: Number(p.longitude),
+          }));
+        setPharmacies(cleaned);
+        // Fit map to markers after a tick
+        requestAnimationFrame(() => fitToMarkers(cleaned));
+      } catch (e) {
+        console.error(e);
+        setError("Failed to load pharmacies. Please check your API.");
+        Alert.alert("Error", "Failed to load pharmacies from server.");
+      } finally {
+        setLoading(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  const requestLocationPermission = async () => {
-    try {
-      if (Platform.OS === 'android') {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
-        );
-        
-        if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-          getCurrentLocation();
-        } else {
-          Alert.alert(
-            'Permission Required',
-            'Location permission is needed to find nearby pharmacies'
-          );
-          // Use default location if permission denied
-          fetchPharmacies();
-        }
-      } else {
-        getCurrentLocation();
-      }
-    } catch (err) {
-      console.warn(err);
-      fetchPharmacies(); // Fallback to default location
-    }
-  };
+  const regions = useMemo(() => {
+    const set = new Set(pharmacies.map((p) => (p.region || "").trim()).filter(Boolean));
+    return ["ALL", ...Array.from(set).sort((a, b) => a.localeCompare(b))];
+  }, [pharmacies]);
 
-  const getCurrentLocation = () => {
-    setIsLoading(true);
-    Geolocation.getCurrentPosition(
-      position => {
-        const { latitude, longitude } = position.coords;
-        setRegion({
-          latitude,
-          longitude,
-          latitudeDelta: 0.0922,
-          longitudeDelta: 0.0421,
-        });
-        fetchPharmacies(latitude, longitude);
-      },
-      error => {
-        console.warn(error.message);
-        Alert.alert('Error', 'Could not get your location. Using default location.');
-        fetchPharmacies(); // Fallback to default location
-      },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
-    );
-  };
-
-  const fetchPharmacies = async (lat = null, lng = null) => {
-    try {
-      setIsLoading(true);
-      const params = {};
-      
-      if (lat && lng) {
-        params.lat = lat;
-        params.lng = lng;
-        params.radius = 10; // 10km radius
-      }
-
-      const response = await axios.get(API_URL, { params });
-      
-      const formatted = response.data.map(item => ({
-        id: item.id,
-        name: item.name,
-        address: item.address,
-        phone: item.phone,
-        latitude: parseFloat(item.latitude),
-        longitude: parseFloat(item.longitude),
-        details: item.details,
-        region: item.region,
-        distance: lat && lng ? calculateDistance(
-          lat,
-          lng,
-          parseFloat(item.latitude),
-          parseFloat(item.longitude)
-        ).toFixed(1) : null
-      }));
-
-      setPharmacies(formatted);
-      setFilteredPharmacies(formatted);
-    } catch (err) {
-      setError(err.message);
-      Alert.alert('Error', 'Failed to fetch pharmacies');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371; // Earth radius in km
-    const dLat = deg2rad(lat2 - lat1);
-    const dLon = deg2rad(lon2 - lon1);
-    const a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
-      Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
-    return R * c;
-  };
-
-  const deg2rad = (deg) => deg * (Math.PI/180);
-
-  const handleSearch = (text) => {
-    setSearchQuery(text);
-    if (text === '') {
-      setFilteredPharmacies(pharmacies);
-    } else {
-      const filtered = pharmacies.filter(pharmacy =>
-        pharmacy.name.toLowerCase().includes(text.toLowerCase()) ||
-        pharmacy.address.toLowerCase().includes(text.toLowerCase()) ||
-        pharmacy.region.toLowerCase().includes(text.toLowerCase())
-      );
-      setFilteredPharmacies(filtered);
-    }
-  };
-
-  const handlePharmacySelect = (pharmacy) => {
-    setSelectedPharmacy(pharmacy);
-    setRegion({
-      latitude: pharmacy.latitude,
-      longitude: pharmacy.longitude,
-      latitudeDelta: 0.01,
-      longitudeDelta: 0.01,
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return pharmacies.filter((p) => {
+      const matchesRegion = regionFilter === "ALL" || (p.region || "").toLowerCase() === regionFilter.toLowerCase();
+      if (!matchesRegion) return false;
+      if (!q) return true;
+      const hay = `${p.name} ${p.region} ${p.address} ${p.details}`.toLowerCase();
+      return hay.includes(q);
     });
-    bottomSheet.current.show();
-  };
+  }, [pharmacies, query, regionFilter]);
 
-  const callPharmacy = () => {
-    if (selectedPharmacy?.phone) {
-      Linking.openURL(`tel:${selectedPharmacy.phone}`);
-    } else {
-      Alert.alert('Info', 'No phone number available for this pharmacy');
+  function fitToMarkers(items = filtered) {
+    if (!mapRef.current || !items?.length) return;
+    const coordinates = items.map((p) => ({ latitude: p.latitude, longitude: p.longitude }));
+    mapRef.current.fitToCoordinates(coordinates, {
+      edgePadding: { top: 80, right: 80, bottom: 120, left: 80 },
+      animated: true,
+    });
+  }
+
+  async function handleLocateMe() {
+    try {
+      setLocating(true);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permission required", "Location permission is needed to center the map.");
+        return;
+      }
+      const { coords } = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      if (coords && mapRef.current) {
+        mapRef.current.animateCamera({
+          center: { latitude: coords.latitude, longitude: coords.longitude },
+          zoom: 13,
+        });
+      }
+    } catch (e) {
+      console.warn("Locate me error", e);
+      Alert.alert("Error", "Could not fetch your current location.");
+    } finally {
+      setLocating(false);
     }
-  };
+  }
 
-  const renderPharmacyDetails = () => (
-    <View style={styles.detailsContainer}>
-      <Text style={styles.pharmacyName}>{selectedPharmacy?.name}</Text>
-      
-      <View style={styles.detailRow}>
-        <Ionicons name="location" size={18} color="#4E8CFF" />
-        <Text style={styles.detailText}>{selectedPharmacy?.address}</Text>
-      </View>
-      
-      <View style={styles.detailRow}>
-        <Ionicons name="map" size={18} color="#4E8CFF" />
-        <Text style={styles.detailText}>{selectedPharmacy?.region}</Text>
-      </View>
-      
-      {selectedPharmacy?.phone && (
-        <View style={styles.detailRow}>
-          <Ionicons name="call" size={18} color="#4E8CFF" />
-          <Text style={styles.detailText}>{selectedPharmacy.phone}</Text>
-        </View>
-      )}
-      
-      {selectedPharmacy?.distance && (
-        <View style={styles.detailRow}>
-          <Ionicons name="navigate" size={18} color="#4E8CFF" />
-          <Text style={styles.detailText}>{selectedPharmacy.distance} km away</Text>
-        </View>
-      )}
-      
-      {selectedPharmacy?.details && (
-        <View style={styles.detailsSection}>
-          <Text style={styles.detailsText}>{selectedPharmacy.details}</Text>
-        </View>
-      )}
-      
-      <TouchableOpacity 
-        style={styles.callButton}
-        onPress={callPharmacy}
-      >
-        <Ionicons name="call" size={20} color="white" />
-        <Text style={styles.callButtonText}>Call Pharmacy</Text>
-      </TouchableOpacity>
-    </View>
-  );
+  function openDial(phone) {
+    if (!phone) return;
+    const scheme = Platform.select({ ios: "telprompt:", android: "tel:" });
+    Linking.openURL(`${scheme}${phone}`);
+  }
 
-  if (isLoading) {
-    return (
-      <View style={styles.loader}>
-        <ActivityIndicator size="large" color="#4E8CFF" />
-        <Text>Loading pharmacies...</Text>
-      </View>
-    );
+  function openWhatsApp(phone) {
+    if (!phone) return;
+    const wa = `whatsapp://send?phone=${encodeURIComponent(phone)}&text=${encodeURIComponent("Habari! Naomba msaada.")}`;
+    Linking.openURL(wa).catch(() => Alert.alert("WhatsApp not installed", "Please install WhatsApp to use this feature."));
+  }
+
+  function openEmail(email) {
+    if (!email) return;
+    const url = `mailto:${email}`;
+    Linking.openURL(url);
+  }
+
+  function openDirections(lat, lng, label) {
+    const url = Platform.select({
+      ios: `http://maps.apple.com/?daddr=${lat},${lng}&q=${encodeURIComponent(label || "Pharmacy")}`,
+      android: `geo:0,0?q=${lat},${lng}(${encodeURIComponent(label || "Pharmacy")})`,
+    });
+    Linking.openURL(url);
+  }
+
+  function openWebsite(url) {
+    if (!url) return;
+    let safe = url;
+    if (!/^https?:\/\//i.test(safe)) safe = `https://${safe}`;
+    Linking.openURL(safe);
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={styles.container}>
-          <View style={styles.searchContainer}>
-            <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search pharmacies..."
-              value={searchQuery}
-              onChangeText={handleSearch}
-            />
-          </View>
-
-          <MapView
-            ref={mapRef}
-            style={styles.map}
-            provider={PROVIDER_GOOGLE}
-            region={region}
-            showsUserLocation={true}
-          >
-            {filteredPharmacies.map(pharmacy => (
-              <Marker
-                key={pharmacy.id}
-                coordinate={{
-                  latitude: pharmacy.latitude,
-                  longitude: pharmacy.longitude
-                }}
-                onPress={() => handlePharmacySelect(pharmacy)}
-              >
-                <View style={styles.markerContainer}>
-                  <View style={styles.markerPin}>
-                    <MaterialCommunityIcons name="medical-bag" size={20} color="white" />
-                  </View>
-                </View>
-              </Marker>
-            ))}
-          </MapView>
-
-          <BottomSheet
-            ref={bottomSheet}
-            height={300}
-            radius={20}
-            sheetBackgroundColor="#fff"
-            hasDraggableIcon
-          >
-            {selectedPharmacy && renderPharmacyDetails()}
-          </BottomSheet>
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.title}>Pharmacies — Tanzania & Zanzibar</Text>
+        <View style={styles.toolbar}>
+          <TextInput
+            placeholder="Search by name, region, address…"
+            value={query}
+            onChangeText={setQuery}
+            style={styles.search}
+            returnKeyType="search"
+          />
+          <TouchableOpacity onPress={() => { setQuery(""); setRegionFilter("ALL"); fitToMarkers(pharmacies); }} style={styles.resetBtn}>
+            <Text style={styles.resetText}>Reset</Text>
+          </TouchableOpacity>
         </View>
-      </TouchableWithoutFeedback>
-    </SafeAreaView>
+
+        {/* Region filter chips */}
+        <View style={styles.chipsRow}>
+          {regions.map((r) => (
+            <TouchableOpacity
+              key={r}
+              onPress={() => setRegionFilter(r)}
+              style={[styles.chip, regionFilter === r && styles.chipActive]}
+            >
+              <Text style={[styles.chipText, regionFilter === r && styles.chipTextActive]}>{r}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      {/* Map */}
+      <MapView
+        ref={mapRef}
+        style={styles.map}
+        provider={PROVIDER_GOOGLE}
+        initialRegion={INITIAL_REGION}
+        showsUserLocation
+        showsMyLocationButton={false}
+        showsCompass
+        toolbarEnabled
+        moveOnMarkerPress={false}
+      >
+        {filtered.map((p) => (
+          <Marker
+            key={p.id ?? `${p.name}-${p.latitude}-${p.longitude}`}
+            coordinate={{ latitude: p.latitude, longitude: p.longitude }}
+            title={p.name}
+            description={p.address || p.region}
+          >
+            <Callout tooltip>
+              <View style={styles.calloutCard}>
+                <Text style={styles.calloutTitle}>{p.name}</Text>
+                {!!p.region && <Text style={styles.calloutMeta}>Region: {p.region}</Text>}
+                {!!p.address && <Text style={styles.calloutMeta}>{p.address}</Text>}
+                {!!p.details && <Text style={styles.calloutDetails}>{p.details}</Text>}
+
+                <View style={styles.actionsRow}>
+                  {!!p.phone && (
+                    <TouchableOpacity style={styles.actionBtn} onPress={() => openDial(p.phone)}>
+                      <Text style={styles.actionText}>Call</Text>
+                    </TouchableOpacity>
+                  )}
+                  {!!p.phone && (
+                    <TouchableOpacity style={styles.actionBtn} onPress={() => openWhatsApp(p.phone)}>
+                      <Text style={styles.actionText}>WhatsApp</Text>
+                    </TouchableOpacity>
+                  )}
+                  {!!p.email && (
+                    <TouchableOpacity style={styles.actionBtn} onPress={() => openEmail(p.email)}>
+                      <Text style={styles.actionText}>Email</Text>
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity style={styles.actionBtn} onPress={() => openDirections(p.latitude, p.longitude, p.name)}>
+                    <Text style={styles.actionText}>Directions</Text>
+                  </TouchableOpacity>
+                  {!!p.website && (
+                    <TouchableOpacity style={styles.actionBtn} onPress={() => openWebsite(p.website)}>
+                      <Text style={styles.actionText}>Website</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+            </Callout>
+          </Marker>
+        ))}
+      </MapView>
+
+      {/* Footer overlay */}
+      <View style={styles.footer}>
+        <View style={styles.footerLeft}>
+          <Text style={styles.countText}>{filtered.length} shown</Text>
+          {loading && <ActivityIndicator size="small" />}
+          {!!error && <Text style={styles.errorText}>{error}</Text>}
+        </View>
+        <View style={styles.footerRight}>
+          <TouchableOpacity style={styles.btn} onPress={() => fitToMarkers()}>
+            <Text style={styles.btnText}>Fit All</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.btn, locating && { opacity: 0.6 }]} onPress={handleLocateMe} disabled={locating}>
+            <Text style={styles.btnText}>{locating ? "Locating…" : "Locate Me"}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: { flex: 1, backgroundColor: "#fff" },
+  header: {
+    paddingTop: Platform.OS === "ios" ? 50 : 20,
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    backgroundColor: "#f7f7fb",
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#e6e6ee",
+  },
+  title: { fontSize: 18, fontWeight: "700", marginBottom: 8 },
+  toolbar: { flexDirection: "row", gap: 8, alignItems: "center" },
+  search: {
     flex: 1,
-    backgroundColor: '#fff',
+    height: 42,
+    borderWidth: 1,
+    borderColor: "#d9d9e3",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    backgroundColor: "#fff",
   },
-  container: {
-    flex: 1,
+  resetBtn: {
+    height: 42,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#d9d9e3",
+    backgroundColor: "#fff",
   },
-  loader: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    margin: 15,
-    height: 50,
-  },
-  searchIcon: {
-    marginRight: 10,
-  },
-  searchInput: {
-    flex: 1,
-    height: '100%',
-    fontSize: 16,
-  },
-  map: {
-    flex: 1,
-  },
-  markerContainer: {
-    alignItems: 'center',
-  },
-  markerPin: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#4E8CFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  detailsContainer: {
-    padding: 20,
-  },
-  pharmacyName: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 15,
-    color: '#333',
-  },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  detailText: {
-    fontSize: 16,
-    marginLeft: 10,
-    color: '#333',
-  },
-  detailsSection: {
-    marginTop: 15,
-    marginBottom: 20,
-  },
-  detailsText: {
-    color: '#666',
-    lineHeight: 20,
-  },
-  callButton: {
-    backgroundColor: '#4E8CFF',
-    borderRadius: 10,
-    padding: 15,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+  resetText: { fontWeight: "600" },
+  chipsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
     marginTop: 10,
+    marginBottom: 6,
   },
-  callButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
+  chip: {
+    borderWidth: 1,
+    borderColor: "#d9d9e3",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: "#fff",
   },
+  chipActive: { backgroundColor: "#111827" },
+  chipText: { fontSize: 12, color: "#111827" },
+  chipTextActive: { color: "#fff", fontWeight: "700" },
+
+  map: { flex: 1 },
+
+  calloutCard: {
+    width: 280,
+    maxWidth: 320,
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  calloutTitle: { fontSize: 16, fontWeight: "700", marginBottom: 4 },
+  calloutMeta: { fontSize: 12, color: "#4b5563" },
+  calloutDetails: { fontSize: 12, color: "#111827", marginTop: 4 },
+  actionsRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 10 },
+  actionBtn: {
+    borderWidth: 1,
+    borderColor: "#d9d9e3",
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: "#fff",
+  },
+  actionText: { fontSize: 12, fontWeight: "600" },
+
+  footer: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 12,
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  footerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#ffffff",
+    borderWidth: 1,
+    borderColor: "#d9d9e3",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  countText: { fontWeight: "700" },
+  errorText: { color: "#b91c1c", marginLeft: 6 },
+  footerRight: { flexDirection: "row", gap: 8 },
+  btn: {
+    backgroundColor: "#111827",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  btnText: { color: "#fff", fontWeight: "700" },
 });

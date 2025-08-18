@@ -336,7 +336,7 @@ const ChatDemo = () => {
           <div class="meta">Generated: ${formatDate()}</div>
           <div class="section">
             <h2>Patient Information</h2>
-            <div>Name: ${reportData.user_name || 'Not Provided'}</div>
+            <div>Name: ${reportData.full_name || 'Not Provided'}</div>
             <div>Email: ${reportData.user_email || 'Not Provided'}</div>
           </div>
           <div class="section">

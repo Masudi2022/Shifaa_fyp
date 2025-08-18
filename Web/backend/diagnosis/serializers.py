@@ -21,12 +21,26 @@ class ChatSessionSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChatSession
         fields = '__all__'
+from rest_framework import serializers
+from .models import MedicalReport
+from rest_framework import serializers
+from .models import MedicalReport
 
 class MedicalReportSerializer(serializers.ModelSerializer):
+    pdf = serializers.SerializerMethodField()  # Returns full URL
+
     class Meta:
         model = MedicalReport
         fields = '__all__'
         read_only_fields = ['user', 'created_at']
+
+    def get_pdf(self, obj):
+        request = self.context.get('request')  # Get current request
+        if obj.pdf:
+            if request:
+                return request.build_absolute_uri(obj.pdf.url)  # Full URL
+            return obj.pdf.url  # Fallback: relative URL
+        return None
 
     def create(self, validated_data):
         # user is already being passed in from view: serializer.save(user=request.user)
