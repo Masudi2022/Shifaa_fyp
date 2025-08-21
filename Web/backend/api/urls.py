@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, include
 from diagnosis.views import *
 from pharmacy.views import pharmacy_list
 from account.views import RegisterView, CustomTokenObtainPairView, logout_view, update_user_profile
@@ -6,6 +6,12 @@ from rest_framework_simplejwt.views import TokenRefreshView
 from appointment.views import *
 from voicenote.views import *
 from feedback.views import *
+from rest_framework.routers import DefaultRouter
+# from education.views import HealthEducationViewSet
+from education.views import health_education_list, health_education_detail
+
+
+
 
 urlpatterns = [
     # Chat & Session Endpoints
@@ -52,6 +58,12 @@ urlpatterns = [
     path('reports/<int:report_id>/', medical_report_view),  # GET by ID, DELETE
 
     path('feedback/', submit_feedback),  # GET all, POST
+
+
+    # path('api/elimu/', include('education.urls')),
+    path('elimu/', health_education_list, name='health_education_list'),
+    path('elimu/<int:pk>/', health_education_detail, name='health_education_detail'),
+
 ]
 
 

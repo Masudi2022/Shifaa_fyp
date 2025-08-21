@@ -1,5 +1,5 @@
 import React, { useContext } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, Alert, ScrollView,Platform, StatusBar } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
 import { useRouter } from 'expo-router';
 import { Ionicons, MaterialIcons, Feather } from '@expo/vector-icons';
@@ -135,7 +135,7 @@ const ProfileScreen = () => {
       </TouchableOpacity>
 
       {/* App Version */}
-      <Text style={styles.versionText}>MediCare App v1.0.0</Text>
+      <Text style={styles.versionText}>Shifaa v1.0.0</Text>
     </ScrollView>
   );
 };
@@ -144,6 +144,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8f9fa',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+    paddingBottom: 50,
   },
   header: {
     paddingTop: 50,
@@ -332,6 +334,11 @@ const styles = StyleSheet.create({
     marginTop: 30,
     marginBottom: 20,
     fontSize: 12,
+    paddingHorizontal: 20,
+    fontStyle: 'italic',
+    backgroundColor: '#f3f4f6',
+    borderRadius: 8,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 40,
   },
 });
 

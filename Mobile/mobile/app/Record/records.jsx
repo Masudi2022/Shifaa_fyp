@@ -161,7 +161,7 @@ const Records = () => {
         end={{ x: 1, y: 0 }}
       >
         <MaterialIcons name="description" size={24} color="#fff" />
-        <Text style={styles.cardTitle}>{item.disease || "Medical Report"}</Text>
+        <Text style={styles.cardTitle}>{item.disease || "Ripoti Ya Uchunguzi"}</Text>
         <View style={styles.dateBadge}>
           <Text style={styles.dateBadgeText}>
             {moment(item.created_at).format('MMM D')}
@@ -181,7 +181,7 @@ const Records = () => {
         </View>
 
         <View style={styles.summaryContainer}>
-          <Text style={styles.summaryLabel}>Summary:</Text>
+          <Text style={styles.summaryLabel}>Kwa Ufupi:</Text>
           <Text style={styles.summaryText} numberOfLines={3}>
             {item.summary || "No summary available"}
           </Text>
@@ -196,7 +196,7 @@ const Records = () => {
               onPress={() => openPDF(item.pdf)}
             >
               <MaterialIcons name="picture-as-pdf" size={18} color="#fff" />
-              <Text style={styles.actionButtonText}>View</Text>
+              <Text style={styles.actionButtonText}>Tazama</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
@@ -204,21 +204,21 @@ const Records = () => {
               onPress={() => handleDownload(item.pdf, `report_${item.id}.pdf`)}
             >
               <Feather name="download" size={18} color="#fff" />
-              <Text style={styles.actionButtonText}>Download</Text>
+              <Text style={styles.actionButtonText}>Pakua</Text>
             </TouchableOpacity>
           </>
         )}
         
-        <TouchableOpacity 
+        {/* <TouchableOpacity 
           style={styles.detailsButton}
           onPress={() => router.push({ 
             pathname: "/reportdetails", 
             params: { id: item.id } 
           })}
-        >
-          <Text style={styles.detailsButtonText}>Details</Text>
-          <Ionicons name="chevron-forward" size={18} color="#4E8CFF" />
-        </TouchableOpacity>
+        > */}
+          {/* <Text style={styles.detailsButtonText}>Details</Text> */}
+          {/* <Ionicons name="chevron-forward" size={18} color="#4E8CFF" /> */}
+        {/* </TouchableOpacity> */}
       </View>
     </View>
   );
@@ -282,11 +282,11 @@ const Records = () => {
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
         
-        <Text style={styles.headerTitle}>Medical Reports</Text>
+        <Text style={styles.headerTitle}>Ripoti Za Uchunguzi</Text>
         
         {!loading && !error && reports.length > 0 && (
           <Text style={styles.reportCount}>
-            {reports.length} {reports.length === 1 ? 'Report' : 'Reports'}
+            {reports.length} {reports.length === 1 ? 'Ripoti' : 'Ripoti'}
           </Text>
         )}
       </LinearGradient>
@@ -335,11 +335,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8f9fa',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+    paddingBottom: 50,
   },
   header: {
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 40,
     paddingBottom: 20,
-    paddingHorizontal: 20,
+    paddingHorizontal: 15,
+    paddingVertical: 40,
+    backgroundColor: '#cbd2dfff',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

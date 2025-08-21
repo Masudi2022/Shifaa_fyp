@@ -145,7 +145,7 @@ function Home() {
           <h2 className="text-center text-primary mb-5">HUDUMA ZETU</h2>
           <Row className="g-4">
             <Col md={4}>
-              <Card className="h-100 border-0 shadow-sm" onClick={() => handleServiceClick('/health-facilities')}>
+              <Card className="h-100 border-0 shadow-sm" onClick={() => handleServiceClick('/pharmacies')}>
                 <div
                   style={{
                     backgroundImage: `url(${hospitalBg})`,

@@ -144,7 +144,7 @@ export default function BookingPage() {
         style={styles.button}
         onPress={() => openBookingModal(item)}
       >
-        <Text style={styles.buttonText}>Book Appointment</Text>
+        <Text style={styles.buttonText}>Panga Miadi</Text>
         <Ionicons name="arrow-forward" size={18} color="white" />
       </TouchableOpacity>
     </View>
@@ -152,7 +152,7 @@ export default function BookingPage() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
+      <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" paddingTop={StatusBar.currentHeight} />
 
       {/* Header */}
       <LinearGradient
@@ -167,7 +167,7 @@ export default function BookingPage() {
         >
           <Ionicons name="arrow-back" size={24} color="#4E8CFF" />
         </TouchableOpacity>
-        <Text style={styles.title}>Find a Doctor</Text>
+        <Text style={styles.title}>Daktari wanao patikana</Text>
         <TouchableOpacity 
           onPress={() => router.push("/bookingHistory")}
           style={styles.headerButton}
@@ -200,7 +200,7 @@ export default function BookingPage() {
           keyExtractor={(item, index) => index.toString()}
           contentContainerStyle={styles.listContent}
           ListHeaderComponent={
-            <Text style={styles.listHeader}>Available Specialists</Text>
+            <Text style={styles.listHeader}>Wataalamu wanopatikana</Text>
           }
         />
       )}
@@ -331,7 +331,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 15,
+    paddingVertical: 45,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
     borderBottomColor: "#e1e5e9",

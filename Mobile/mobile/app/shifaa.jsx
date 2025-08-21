@@ -37,7 +37,7 @@ const router = useRouter();
 const REPORT_BOTTOM_FLEX = 0.8;
 // ----------------------------
 
-const ALL_SYMPTOMS = [ /* ... keep same symptom array ... */ 'homa','homa_kali','baridi','maumivu ya kichwa','maumivu ya misuli','maumivu_ya_viungo','upele','macho_kuwasha_na_wekundu','kikohozi','kikohozi_kisichoisha','kupumua_kwa_shida','maumivu_ya_kifua','kutokwa_na_jasho_usiku','kupungua_uzito','kukosa_hamu_ya_kula','maumivu_ya_tumbo','kuhara_kwa_maji_mengi','kuhara_kunaodamu','kutapika','kichefuchefu','upungufu_wa_maji_mwilini','manjano_ya_macho_na_mwili','mkojo_mweusi','mara_nyingi_kwenda_choo_kidogo','maumivu_wakati_wa_kukojoa','maumivu_ya_ubavu','uchafu_kutoka_sehemu_za_siri','kidonda_kisicho_na_maumivu','uvimbe_wa_tezi','shingo_kuganda','kuogopa_mwangaza','degedege','mkojo_unaodamu','michubuko_ya_mwili','muwasho_sehemu_za_siri','kutokwa_na_damu_kiraisi','upungufu_wa_damu','kuvimbiwa_au_kuhara','kuhara','ugonjwa' ];
+const ALL_SYMPTOMS = [ 'homa','homa_kali','baridi','maumivu ya kichwa','maumivu ya misuli','maumivu_ya_viungo','upele','macho_kuwasha_na_wekundu','kikohozi','mafua','kikohozi_kisichoisha','kupumua_kwa_shida','maumivu_ya_kifua','kutokwa_na_jasho_usiku','kupungua_uzito','kukosa_hamu_ya_kula','maumivu_ya_tumbo','kuhara_kwa_maji_mengi','kuhara_kunaodamu','kutapika','kichefuchefu','upungufu_wa_maji_mwilini','manjano_ya_macho_na_mwili','mkojo_mweusi','mara_nyingi_kwenda_choo_kidogo','maumivu_wakati_wa_kukojoa','maumivu_ya_ubavu','uchafu_kutoka_sehemu_za_siri','kidonda_kisicho_na_maumivu','uvimbe_wa_tezi','shingo_kuganda','kuogopa_mwangaza','degedege','mkojo_unaodamu','michubuko_ya_mwili','muwasho_sehemu_za_siri','kutokwa_na_damu_kiraisi','upungufu_wa_damu','kuvimbiwa_au_kuhara','kuhara','ugonjwa' ];
 
 const ChatDemo = () => {
   const { refreshAccessToken, user } = useContext(AuthContext);
@@ -164,6 +164,53 @@ const ChatDemo = () => {
       if (isMounted) setIsLoading(false);
     }
   };
+
+      const router = useRouter();
+
+    // call this when user taps "Sijui"
+   // call when user taps "Sijui" — sends only the single symptom the question is about
+const handleSijui = () => {
+  // try to extract symptom text from the currentQuestion string.
+  // common format in your code: `Je, una dalili ya 'symptom_name'? (ndio/hapana)`
+  let symptom = null;
+
+  if (typeof currentQuestion === 'string') {
+    // 1) first try to find text between single or double quotes
+    const qmatch = currentQuestion.match(/['"“](.+?)['"”]/);
+    if (qmatch && qmatch[1]) {
+      symptom = qmatch[1];
+    } else {
+      // 2) fallback: try to capture after 'dalili ya' until a ? or end
+      const m = currentQuestion.match(/dalili ya\s+['"]?([^?']+?)['"]?\??$/i);
+      if (m && m[1]) symptom = m[1].trim();
+    }
+  }
+
+  // 3) if still not found, try useful fallbacks in order:
+  // - if user tapped a suggestion (you may track lastTappedSuggestion in state)
+  // - use newMessage (what user typed)
+  // - lastly use the entire currentQuestion string (sanitized)
+  if (!symptom) {
+    // If you track the exact suggestion the user tapped, use that variable here:
+    // symptom = lastTappedSuggestion || ...
+    symptom = (newMessage && newMessage.trim()) || (currentQuestion && currentQuestion.trim()) || '';
+  }
+
+  // normalize (replace underscores with spaces) and ensure single string
+  symptom = String(symptom).replace(/_/g, ' ').trim();
+
+  // create payload as single-item array and encode for querystring
+  const payload = [symptom];
+  try {
+    const q = encodeURIComponent(JSON.stringify(payload));
+    router.push(`/symptomDetails?symptoms=${q}`);
+  } catch (err) {
+    // fallback in case of weird characters
+    router.push(`/symptomDetails?symptoms=${encodeURIComponent(JSON.stringify([symptom]))}`);
+  }
+};
+
+
 
   // main send handler (updated to process advice from backend)
   const handleSend = async (messageOverride = null, meta = null) => {
@@ -489,6 +536,12 @@ const ChatDemo = () => {
     return (
       <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
         <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: Math.max(insets.bottom, 12) }}>
+          <TouchableOpacity 
+                    onPress={() => router.back()}
+                    style={styles.headerButton}
+                  >
+                    <Ionicons name="arrow-back" size={24} color="#4E8CFF" />
+                  </TouchableOpacity>
           <Animated.View style={[styles.centerContent, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }] }>
             <Card style={styles.card}>
               <Card.Content>
@@ -566,16 +619,13 @@ if (isFinalDiagnosis) {
               <View style={styles.infoGrid}>
                 <View style={styles.infoItem}>
                   <Text style={styles.infoLabel}>Jina:</Text>
-                  <Text style={styles.infoValue}>{user?.name || 'Haijatolewa'}</Text>
+                  <Text style={styles.infoValue}>{user?.full_name || 'Haijatolewa'}</Text>
                 </View>
                 <View style={styles.infoItem}>
                   <Text style={styles.infoLabel}>Email:</Text>
                   <Text style={styles.infoValue}>{user?.email || 'Haijatolewa'}</Text>
                 </View>
-                <View style={styles.infoItem}>
-                  <Text style={styles.infoLabel}>ID:</Text>
-                  <Text style={styles.infoValue}>#{Math.random().toString(36).substr(2, 8).toUpperCase()}</Text>
-                </View>
+                
               </View>
             </Card.Content>
           </Card>
@@ -850,7 +900,10 @@ if (isFinalDiagnosis) {
                 <View style={styles.buttonRow}>
                   <TouchableOpacity style={[styles.choiceButton, { backgroundColor: SUCCESS_COLOR }]} onPress={() => handleSend('ndio')} disabled={isLoading}><Icon name="check" size={20} color="#fff" /><Text style={styles.choiceButtonText}> Ndiyo</Text></TouchableOpacity>
                   <TouchableOpacity style={[styles.choiceButton, { backgroundColor: DANGER_COLOR }]} onPress={() => handleSend('hapana')} disabled={isLoading}><Icon name="close" size={20} color="#fff" /><Text style={styles.choiceButtonText}> Hapana</Text></TouchableOpacity>
-                  <TouchableOpacity style={[styles.choiceButton, { backgroundColor: WARNING_COLOR }]} onPress={() => navigation.navigate('UnknownSymptom', { symptom: currentQuestion })} disabled={isLoading}><Icon name="help" size={20} color="#fff" /><Text style={styles.choiceButtonText}> Sijui</Text></TouchableOpacity>
+                  {/* <TouchableOpacity style={[styles.choiceButton, { backgroundColor: WARNING_COLOR }]} onPress={() => navigation.navigate('UnknownSymptom', { symptom: currentQuestion })} disabled={isLoading}><Icon name="help" size={20} color="#fff" /><Text style={styles.choiceButtonText}> Sijui</Text></TouchableOpacity> */}
+                  {/* <TouchableOpacity  style={[styles.choiceButton, { backgroundColor: WARNING_COLOR }]}  onPress={handleSijui}  disabled={isLoading}>  <Icon name="help" size={20} color="#fff" />  <Text style={styles.choiceButtonText}> Sijui</Text></TouchableOpacity> */}
+                    <TouchableOpacity  style={[styles.choiceButton, { backgroundColor: WARNING_COLOR }]}  onPress={handleSijui}  disabled={isLoading}>  <Icon name="help" size={20} color="#fff" />  <Text style={styles.choiceButtonText}> Sijui</Text></TouchableOpacity>
+
                 </View>
               )}
 
@@ -887,6 +940,20 @@ const styles = StyleSheet.create({
   borderBottomLeftRadius: 15,
   borderBottomRightRadius: 15,
 },
+  headerButton: {
+    position: 'absolute',
+    left: 10,
+    top: 10,
+    padding: 8,
+    borderRadius: 50,
+    backgroundColor: '#fff',
+    elevation: 2,
+    zIndex: 999,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 2 },
+  },
 
 headerRow: {
   flexDirection: 'row',

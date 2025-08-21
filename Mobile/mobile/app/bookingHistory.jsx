@@ -10,7 +10,7 @@ import {
   SafeAreaView,
   RefreshControl,
   ScrollView,
-  Dimensions
+  Dimensions  ,Platform, StatusBar
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
@@ -244,15 +244,17 @@ export default function BookingHistory() {
 }
 
 const styles = StyleSheet.create({
-  container: {
+   container: {
     flex: 1,
-    backgroundColor: "#f8f9fa",
+    backgroundColor: '#f8f9fa',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+    paddingBottom: 50,
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 15,
+    paddingVertical: 35,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
     borderBottomColor: "#e1e5e9",

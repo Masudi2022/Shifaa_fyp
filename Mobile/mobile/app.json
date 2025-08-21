@@ -15,7 +15,8 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.masud.shifaa"
+      "bundleIdentifier": "host.exp.exponent",
+      "googleMapsApiKey": "AIzaSyAyWqbnaAUBNcD69RIZnXQQ6Y-wxIXp_QU"
     },
     "android": {
       "adaptiveIcon": {
@@ -23,13 +24,20 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.masud.shifaa"
+      "package": "host.exp.exponent",
+      "googleMapsApiKey": "AIzaSyAyWqbnaAUBNcD69RIZnXQQ6Y-wxIXp_QU",
+      "permissions": [
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-router"
+    ],
+    "permissions": [
+      "location"
     ],
     "extra": {
       "router": {},

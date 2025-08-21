@@ -17,6 +17,8 @@ import { Ionicons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-ico
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { BASE_URL } from '@env';
 
 const { width } = Dimensions.get('window');
@@ -56,43 +58,55 @@ export default function Home() {
     ]).start();
   }, []);
 
-  useEffect(() => {
-    const fetchReminder = async () => {
-      try {
-        const token = await AsyncStorage.getItem('access_token');
-        const response = await axios.get(`${BASE_URL}/appointments/check-reminder/`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+useEffect(() => {
+  const fetchReminder = async () => {
+    try {
+      const token = await AsyncStorage.getItem('access_token');
+      if (!token) {
+        // No token = user not logged in, skip silently
+        setReminderMessage(null);
+        setAppointmentInfo(null);
+        setReminderTimestamp(null);
+        return;
+      }
+
+      const response = await axios.get(`${BASE_URL}/appointments/check-reminder/`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = response.data;
+
+      if (data.upcoming || data.missed) {
+        setReminderMessage(data.message);
+        setAppointmentInfo({
+          id: data.id ?? null,
+          isMissed: data.missed || false,
+          minutesLate: data.minutes_late ?? null,
         });
-
-        const data = response.data;
-
-        if (data.upcoming || data.missed) {
-          setReminderMessage(data.message);
-          setAppointmentInfo({
-            id: data.id ?? null,
-            isMissed: data.missed || false,
-            minutesLate: data.minutes_late ?? null,
-          });
-          setReminderTimestamp(new Date());
-        } else {
-          setReminderMessage(null);
-          setAppointmentInfo(null);
-          setReminderTimestamp(null);
-        }
-      } catch (error) {
-        console.error("Reminder fetch error:", error.response?.data || error.message);
+        setReminderTimestamp(new Date());
+      } else {
         setReminderMessage(null);
         setAppointmentInfo(null);
         setReminderTimestamp(null);
       }
-    };
+    } catch (error) {
+      // Only log if it's NOT 401 (token missing/expired)
+      if (error.response?.status !== 401) {
+        console.error("Reminder fetch error:", error.response?.data || error.message);
+      }
+      setReminderMessage(null);
+      setAppointmentInfo(null);
+      setReminderTimestamp(null);
+    }
+  };
 
-    fetchReminder();
-    const interval = setInterval(fetchReminder, 60000);
-    return () => clearInterval(interval);
-  }, []);
+  fetchReminder();
+  const interval = setInterval(fetchReminder, 60000);
+  return () => clearInterval(interval);
+}, []);
+
 
   const handlePress = (route) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -115,7 +129,7 @@ export default function Home() {
   const appointmentButtonRoute = isDoctor ? '/appointments' : '/booking';
 
   return (
-    <View style={styles.page}>
+   <SafeAreaView style={styles.page} edges={['top', 'bottom']}>
       {/* Header */}
       <View style={styles.fixedHeader}>
         <View style={styles.profileContainer}>
@@ -145,10 +159,7 @@ export default function Home() {
         <Animated.View 
           style={[
             styles.card, 
-            { 
-              opacity: fadeAnim, 
-              transform: [{ translateY: slideUpAnim }] 
-            }
+            { opacity: fadeAnim, transform: [{ translateY: slideUpAnim }] }
           ]}
         >
           <View style={styles.doctorHeader}>
@@ -157,8 +168,8 @@ export default function Home() {
               style={styles.doctorImage}
             />
             <View style={styles.doctorInfo}>
-              <Text style={styles.doctorName}>Dkt. Johan Jenson</Text>
-              <Text style={styles.specialty}>Daktari wa Magonjwa ya Ndani</Text>
+              <Text style={styles.doctorName}>Karibu Shifaa</Text>
+              <Text style={styles.specialty}>Pata kujua dalili zako kiganjani mwako</Text>
               <View style={styles.ratingContainer}>
                 <Ionicons name="star" size={16} color="#FFD700" />
                 <Text style={styles.ratingText}>4.9 (tathmini 128)</Text>
@@ -170,8 +181,8 @@ export default function Home() {
 
           <View style={styles.availabilityContainer}>
             <View style={styles.priceContainer}>
-              <Text style={styles.priceLabel}>Gharama ya Ushauri</Text>
-              <Text style={styles.price}>Tsh 35,000 / kikao</Text>
+              {/* <Text style={styles.priceLabel}>Gharama ya Ushauri</Text> */}
+              {/* <Text style={styles.price}>Tsh 35,000 / kikao</Text> */}
             </View>
 
             <View style={styles.availability}>
@@ -205,51 +216,30 @@ export default function Home() {
         </Animated.View>
 
         {/* Info Banner */}
-        <View style={[
-          styles.infoBanner,
-          reminderMessage ? styles.urgentBanner : null
-        ]}>
-          <Ionicons 
-            name={reminderMessage ? "alert-circle-outline" : "information-circle-outline"} 
-            size={20} 
-            color={reminderMessage ? "#DC2626" : "#1E40AF"} 
-            style={{ marginRight: 8 }} 
-          />
-          {reminderMessage ? (
-            (() => {
-              const now = new Date();
-              const diffInMinutes = reminderTimestamp
-                ? Math.floor((now - new Date(reminderTimestamp)) / 60000)
-                : 0;
-
-              const isClickable = appointmentInfo &&
-                !appointmentInfo.isMissed &&
-                diffInMinutes <= 30;
-
-              return isClickable ? (
-                <TouchableOpacity
-                  onPress={() => {
-                    if (appointmentInfo?.id) {
-                      router.push(`/appointment/${appointmentInfo.id}`);
-                    }
-                  }}
-                >
-                  <Text style={styles.urgentText}>
-                    {reminderMessage}
-                  </Text>
-                </TouchableOpacity>
+         <TouchableOpacity
+            disabled={!appointmentInfo?.id} // only clickable if ID exists
+            onPress={() => {
+              if (appointmentInfo?.id) {
+                router.push(`/appointment/${appointmentInfo.id}`);
+              }
+            }}
+          >
+            <View style={[styles.infoBanner, reminderMessage ? styles.urgentBanner : null]}>
+              <Ionicons
+                name={reminderMessage ? "alert-circle-outline" : "information-circle-outline"}
+                size={20}
+                color={reminderMessage ? "#DC2626" : "#1E40AF"}
+                style={{ marginRight: 8 }}
+              />
+              {reminderMessage ? (
+                <Text style={styles.urgentText}>{reminderMessage}</Text>
               ) : (
-                <Text style={styles.urgentText}>
-                  {reminderMessage}
+                <Text style={styles.infoText}>
+                  Karibu kwenye <Text style={styles.brandText}>Shifaa</Text> — msaidizi wako wa kiafya kwa lugha ya Kiswahili.
                 </Text>
-              );
-            })()
-          ) : (
-            <Text style={styles.infoText}>
-              Karibu kwenye <Text style={styles.brandText}>Shifaa</Text> — msaidizi wako wa kiafya kwa lugha ya Kiswahili.
-            </Text>
-          )}
-        </View>
+              )}
+            </View>
+          </TouchableOpacity>
 
         {/* Quick Access */}
         <Text style={styles.sectionTitle}>Huduma za Haraka</Text>
@@ -279,45 +269,72 @@ export default function Home() {
 
         {/* Health Tips */}
         <Text style={styles.sectionTitle}>Vidokezo vya Afya</Text>
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false} 
-          style={styles.tipsScroll}
-          contentContainerStyle={styles.tipsContainer}
-        >
-          <View style={styles.tipCard}>
-            <Image
-              source={{ uri: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b' }}
-              style={styles.tipImage}
-            />
-            <View style={styles.tipContent}>
-              <Text style={styles.tipTitle}>Kunywa Maji Kwa Wingi</Text>
-              <Text style={styles.tipText}>Kunywa lita 2 za maji kila siku kwa afya njema</Text>
-            </View>
-          </View>
+        {/* Health Tips */}
+{/* <Text style={styles.sectionTitle}>Vidokezo vya Afya</Text> */}
+<ScrollView 
+  horizontal 
+  showsHorizontalScrollIndicator={false} 
+  style={styles.tipsScroll}
+  contentContainerStyle={styles.tipsContainer}
+>
+  
+  
+  <TouchableOpacity style={styles.tipCard} onPress={() => handlePress('/')}>
+    <Image source={{ uri: 'https://img.freepik.com/free-photo/sporty-young-man-jogging-nature_23-2148137713.jpg' }} style={styles.tipImage} />
+    <View style={styles.tipContent}>
+      <Text style={styles.tipText}>Fanya mazoezi angalau dakika 30 kila siku</Text>
+    </View>
+  </TouchableOpacity>
+  
+  <TouchableOpacity style={styles.tipCard} onPress={() => handlePress('/')}>
+    <Image source={{ uri: 'https://img.freepik.com/free-photo/assortment-vegetables-herbs-spices_123827-21867.jpg' }} style={styles.tipImage} />
+    <View style={styles.tipContent}>
+      <Text style={styles.tipText}>Kula mboga za majani na matunda mengi</Text>
+    </View>
+  </TouchableOpacity>
+  
+  <TouchableOpacity style={styles.tipCard} onPress={() => handlePress('/')}>
+    <Image source={{ uri: 'https://img.freepik.com/free-photo/woman-sleeping-bed_1150-7006.jpg' }} style={styles.tipImage} />
+    <View style={styles.tipContent}>
+      <Text style={styles.tipText}>Lala usingizi wa saa 7-8 kila usiku</Text>
+    </View>
+  </TouchableOpacity>
+  
+  <TouchableOpacity style={styles.tipCard} onPress={() => handlePress('/')}>
+    <Image source={{ uri: 'https://img.freepik.com/free-photo/young-woman-meditating-outdoor_23-2148657930.jpg' }} style={styles.tipImage} />
+    <View style={styles.tipContent}>
+      <Text style={styles.tipText}>Dhibiti msongo wa mawazo kwa kupumzika</Text>
+    </View>
+  </TouchableOpacity>
 
-          <View style={styles.tipCard}>
-            <Image
-              source={{ uri: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b' }}
-              style={styles.tipImage}
-            />
-            <View style={styles.tipContent}>
-              <Text style={styles.tipTitle}>Mazoezi ya Kila Siku</Text>
-              <Text style={styles.tipText}>Dakika 30 za mazoezi kila siku kudumisha afya</Text>
-            </View>
-          </View>
-
-          <View style={styles.tipCard}>
-            <Image
-              source={{ uri: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c' }}
-              style={styles.tipImage}
-            />
-            <View style={styles.tipContent}>
-              <Text style={styles.tipTitle}>Lishe Bora</Text>
-              <Text style={styles.tipText}>Kula mboga na matunda kwa wingi kwa afya bora</Text>
-            </View>
-          </View>
-        </ScrollView>
+  <TouchableOpacity style={styles.tipCard} onPress={() => handlePress('/')}>
+    <Image source={{ uri: 'https://img.freepik.com/free-photo/glass-water-with-lemon_23-2147694623.jpg' }} style={styles.tipImage} />
+    <View style={styles.tipContent}>
+      <Text style={styles.tipText}>Kunywa maji ya kutosha kila siku (lita 2-3)</Text>
+    </View>
+  </TouchableOpacity>
+  
+  <TouchableOpacity style={styles.tipCard} onPress={() => handlePress('/')}>
+    <Image source={{ uri: 'https://img.freepik.com/free-photo/closeup-unrecognizable-person-washing-hands_53876-97689.jpg' }} style={styles.tipImage} />
+    <View style={styles.tipContent}>
+      <Text style={styles.tipText}>Osha mikono mara kwa mara kuepusha magonjwa</Text>
+    </View>
+  </TouchableOpacity>
+  
+  <TouchableOpacity style={styles.tipCard} onPress={() => handlePress('/')}>
+    <Image source={{ uri: 'https://img.freepik.com/free-photo/doctor-with-syringe-jab_23-2149185518.jpg' }} style={styles.tipImage} />
+    <View style={styles.tipContent}>
+      <Text style={styles.tipText}>Pata chanjo zote muhimu kwa afya yako</Text>
+    </View>
+  </TouchableOpacity>
+  
+  <TouchableOpacity style={styles.tipCard} onPress={() => handlePress('/')}>
+    <Image source={{ uri: 'https://img.freepik.com/free-photo/doctor-examining-patient-clinic_53876-14858.jpg' }} style={styles.tipImage} />
+    <View style={styles.tipContent}>
+      <Text style={styles.tipText}>Fanya uchunguzi wa mara kwa mara</Text>
+    </View>
+  </TouchableOpacity>
+</ScrollView>
 
         {/* Services Section */}
         <Text style={styles.sectionTitle}>Huduma Zingine</Text>
@@ -327,37 +344,37 @@ export default function Home() {
             onPress={() => handlePress('/Record/records')}
           >
             <View style={[styles.serviceIcon, styles.recordsIcon]}>
-              <Ionicons name="document-text-outline" size={24} color="#3B82F6" />
+              <Ionicons name="heart-outline" size={28} color="#EF4444" />
             </View>
-            <Text style={styles.serviceTitle}>Kumbukumbu Zako</Text>
+            <Text style={styles.serviceTitle}>Vipimo vya Afya</Text>
           </TouchableOpacity>
-
+          
           <TouchableOpacity 
             style={styles.serviceCard}
-            onPress={() => handlePress('/lab')}
+            onPress={() => handlePress('/Elimu/elimu')}
           >
             <View style={[styles.serviceIcon, styles.labIcon]}>
-              <MaterialCommunityIcons name="test-tube" size={24} color="#10B981" />
+              <Ionicons name="school-outline" size={28} color="#3B82F6" />
             </View>
-            <Text style={styles.serviceTitle}>Uchunguzi wa Maabara</Text>
+            <Text style={styles.serviceTitle}>Elimu ya Afya</Text>
           </TouchableOpacity>
-
+          
           <TouchableOpacity 
             style={styles.serviceCard}
-            onPress={() => handlePress('/emergency')}
+            onPress={() => handlePress('/')}
           >
             <View style={[styles.serviceIcon, styles.emergencyIcon]}>
-              <Ionicons name="medkit-outline" size={24} color="#EF4444" />
+              <Ionicons name="call-outline" size={28} color="#10B981" />
             </View>
-            <Text style={styles.serviceTitle}>Dharura</Text>
+            <Text style={styles.serviceTitle}>Huduma kwa Simu</Text>
           </TouchableOpacity>
-
+          
           <TouchableOpacity 
             style={styles.serviceCard}
-            onPress={() => handlePress('/articles')}
+            onPress={() => handlePress('/')}
           >
             <View style={[styles.serviceIcon, styles.articlesIcon]}>
-              <Ionicons name="newspaper-outline" size={24} color="#8B5CF6" />
+              <Ionicons name="document-text-outline" size={28} color="#8B5CF6" />
             </View>
             <Text style={styles.serviceTitle}>Makala za Afya</Text>
           </TouchableOpacity>
@@ -370,235 +387,69 @@ export default function Home() {
           <Ionicons name="home" size={24} color="#4E8CFF" />
           <Text style={styles.navTextActive}>Nyumbani</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={styles.navItem} 
-          onPress={() => handlePress('/shifaa')}
-        >
+        <TouchableOpacity style={styles.navItem} onPress={() => handlePress('/shifaa')}>
           <Ionicons name="chatbubbles" size={24} color="#94A3B8" />
           <Text style={styles.navText}>Mazungumzo</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={styles.navItem} 
-          onPress={() => handlePress('/feedback/feedback')}
-        >
-          <Ionicons name="message-text-outlin" size={24} color="#94A3B8" />
-          <Text style={styles.navText}>Miadi</Text>
+        <TouchableOpacity style={styles.navItem} onPress={() => handlePress('/Record/records')}>
+          <Ionicons name="calendar-outline" size={24} color="#94A3B8" />
+          <Text style={styles.navText}>Taarifa za afya</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={styles.navItem} 
-          onPress={() => handlePress('/profile')}
-        >
+        <TouchableOpacity style={styles.navItem} onPress={() => handlePress('/profile')}>
           <Ionicons name="person" size={24} color="#94A3B8" />
           <Text style={styles.navText}>Akaunti</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  page: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-  },
-  loadingText: {
-    marginTop: 16,
-    color: '#64748B',
-    fontSize: 16,
-  },
-  fixedHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 50,
-    paddingBottom: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-    zIndex: 100,
-  },
-  profileContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  profileImage: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    marginRight: 12,
-  },
-  welcomeText: {
-    fontSize: 14,
-    color: '#64748B',
-  },
-  userName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginTop: 2,
-  },
-  notificationButton: {
-    position: 'relative',
-    padding: 8,
-  },
-  notificationBadge: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#EF4444',
-  },
-  container: {
-    padding: 16,
-    paddingBottom: 100,
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    elevation: 3,
-  },
-  doctorHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  doctorImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 16,
-    marginRight: 16,
-  },
-  doctorInfo: {
-    flex: 1,
-  },
-  doctorName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  specialty: {
-    color: '#64748B',
-    fontSize: 14,
-    marginBottom: 6,
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  ratingText: {
-    color: '#64748B',
-    fontSize: 13,
-    marginLeft: 4,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#F1F5F9',
-    marginVertical: 16,
-  },
-  availabilityContainer: {
-    marginBottom: 16,
-  },
-  priceContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  priceLabel: {
-    color: '#64748B',
-    fontSize: 14,
-  },
-  price: {
-    color: '#1E293B',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  availability: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  day: {
-    backgroundColor: '#F1F5F9',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-  },
-  activeDay: {
-    backgroundColor: '#4E8CFF',
-  },
-  dayText: {
-    color: '#64748B',
-    fontWeight: '500',
-    fontSize: 14,
-  },
-  activeDayText: {
-    color: 'white',
-  },
-  bookButton: {
-    backgroundColor: '#4E8CFF',
-    borderRadius: 12,
-    paddingVertical: 14,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#4E8CFF',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  bookButtonText: {
-    color: 'white',
-    fontWeight: '600',
-    fontSize: 16,
-    marginRight: 8,
-  },
-  infoBanner: {
-    flexDirection: 'row',
-    backgroundColor: '#DBEAFE',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 24,
-    alignItems: 'center',
-  },
-  urgentBanner: {
-    backgroundColor: '#FEE2E2',
-  },
-  infoText: {
-    flex: 1,
-    fontSize: 14,
-    color: '#1E40AF',
-    lineHeight: 20,
-  },
-  urgentText: {
-    flex: 1,
-    fontSize: 14,
-    color: '#DC2626',
-    fontWeight: '500',
-    lineHeight: 20,
-  },
-  brandText: {
-    fontWeight: '700',
-    color: '#1E40AF',
-  },
+  page: { flex: 1, backgroundColor: '#F8FAFC' },
+  container: { padding: 20, paddingBottom: 180 },
+
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingText: { marginTop: 12, fontSize: 16, color: '#64748B' },
+
+  fixedHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16 },
+  profileContainer: { flexDirection: 'row', alignItems: 'center' },
+  profileImage: { width: 48, height: 48, borderRadius: 24, marginRight: 12 },
+  welcomeText: { fontSize: 14, color: '#64748B' },
+  userName: { fontSize: 16, fontWeight: '600', color: '#0F172A' },
+
+  notificationButton: { position: 'relative' },
+  notificationBadge: { position: 'absolute', top: 0, right: 0, width: 8, height: 8, borderRadius: 4, backgroundColor: '#EF4444' },
+
+  card: { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 20, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 3 },
+  doctorHeader: { flexDirection: 'row', alignItems: 'center' },
+  doctorImage: { width: 80, height: 80, borderRadius: 40, marginRight: 12 },
+  doctorInfo: { flex: 1 },
+  doctorName: { fontSize: 18, fontWeight: '600', color: '#111827' },
+  specialty: { fontSize: 14, color: '#64748B', marginTop: 2 },
+  ratingContainer: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
+  ratingText: { marginLeft: 4, fontSize: 12, color: '#475569' },
+
+  divider: { height: 1, backgroundColor: '#E2E8F0', marginVertical: 12 },
+
+  availabilityContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  priceContainer: {},
+  priceLabel: { fontSize: 12, color: '#94A3B8' },
+  price: { fontSize: 14, fontWeight: '600', color: '#111827' },
+  availability: { flexDirection: 'row' },
+  day: { paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8, backgroundColor: '#F1F5F9', marginHorizontal: 2 },
+  activeDay: { backgroundColor: '#4E8CFF' },
+  dayText: { fontSize: 12, color: '#475569' },
+  activeDayText: { color: '#fff', fontWeight: '600' },
+
+  bookButton: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', backgroundColor: '#4E8CFF', paddingVertical: 12, borderRadius: 10, marginTop: 12 },
+  bookButtonText: { color: '#fff', fontWeight: '600', marginRight: 6 },
+
+  infoBanner: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#EFF6FF', padding: 12, borderRadius: 10, marginBottom: 16 },
+  urgentBanner: { backgroundColor: '#FEE2E2' },
+  infoText: { fontSize: 13, color: '#1E40AF' },
+  urgentText: { fontSize: 13, color: '#DC2626', fontWeight: '600' },
+  brandText: { fontWeight: '700' },
+
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
@@ -671,16 +522,10 @@ const styles = StyleSheet.create({
   tipContent: {
     padding: 16,
   },
-  tipTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
   tipText: {
-    fontSize: 13,
-    color: '#64748B',
-    lineHeight: 18,
+    fontSize: 14,
+    color: '#1E293B',
+    fontWeight: '500',
   },
   servicesGrid: {
     flexDirection: 'row',
@@ -729,7 +574,7 @@ const styles = StyleSheet.create({
   },
   bottomNav: {
     position: 'absolute',
-    bottom: 0,
+    bottom: 45,
     left: 0,
     right: 0,
     height: 80,
@@ -739,7 +584,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
-    paddingBottom: 16,
+    // paddingBottom: 16,
   },
   navItem: {
     alignItems: 'center',

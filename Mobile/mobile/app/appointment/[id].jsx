@@ -9,7 +9,8 @@ import {
   Alert,
   SafeAreaView,
   Image,
-  StatusBar
+  StatusBar,
+  Platform
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
@@ -213,7 +214,7 @@ export default function AppointmentDetail() {
         </TouchableOpacity>
         
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Appointment Details</Text>
+          <Text style={styles.headerTitle}>Taarifa za miadi</Text>
           {appointment && (
             <Text style={styles.headerSubtitle}>
               {formatDateTime(appointment.created_at)}
@@ -230,21 +231,21 @@ export default function AppointmentDetail() {
             <View style={styles.infoRow}>
               <MaterialIcons name="person" size={20} color="#4F46E5" />
               <Text style={styles.infoText}>
-                <Text style={styles.labelText}>Patient: </Text>
+                <Text style={styles.labelText}>Mgonjwa: </Text>
                 {appointment.user_name}
               </Text>
             </View>
             <View style={styles.infoRow}>
               <MaterialIcons name="medical-services" size={18} color="#4F46E5" />
               <Text style={styles.infoText}>
-                <Text style={styles.labelText}>Doctor: </Text>
+                <Text style={styles.labelText}>Daktari: </Text>
                 {appointment.doctor_name}
               </Text>
             </View>
             <View style={styles.infoRow}>
               <MaterialIcons name="calendar-today" size={18} color="#4F46E5" />
               <Text style={styles.infoText}>
-                <Text style={styles.labelText}>Date: </Text>
+                <Text style={styles.labelText}>Tarehe: </Text>
                 {new Date(appointment.date).toLocaleDateString('en-US', {
                   weekday: 'long',
                   month: 'long',
@@ -255,14 +256,14 @@ export default function AppointmentDetail() {
             <View style={styles.infoRow}>
               <MaterialIcons name="access-time" size={18} color="#4F46E5" />
               <Text style={styles.infoText}>
-                <Text style={styles.labelText}>Time: </Text>
+                <Text style={styles.labelText}>Muda: </Text>
                 {appointment.time}
               </Text>
             </View>
             <View style={styles.infoRow}>
               <MaterialIcons name="info" size={18} color="#4F46E5" />
               <Text style={styles.infoText}>
-                <Text style={styles.labelText}>Reason: </Text>
+                <Text style={styles.labelText}>Sababu: </Text>
                 {appointment.reason || 'No reason provided'}
               </Text>
             </View>
@@ -270,7 +271,7 @@ export default function AppointmentDetail() {
         )}
 
         {/* Voice notes section */}
-        <Text style={styles.sectionTitle}>Voice Notes</Text>
+        <Text style={styles.sectionTitle}>Bonyeza kitufe cha mic kuanza mazungumzo</Text>
         
         {voiceNotes.length === 0 ? (
           <View style={styles.emptyState}>
@@ -378,7 +379,9 @@ export default function AppointmentDetail() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F9FAFB'
+    backgroundColor: '#f8f9fa',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+    paddingBottom: 40,
   },
   loadingContainer: {
     flex: 1,
@@ -449,8 +452,8 @@ const styles = StyleSheet.create({
     color: '#374151'
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '60',
     color: '#111827',
     marginBottom: 16,
     marginTop: 8
@@ -555,7 +558,7 @@ const styles = StyleSheet.create({
   },
   micButton: {
     position: 'absolute',
-    bottom: 30,
+    bottom: 60,
     right: 30,
     width: 60,
     height: 60,
