@@ -16,7 +16,7 @@ export default function PharmacyMap() {
   const mapRef = useRef(null);
 
   // Replace with your Google Maps API key in app.json or manifest
-  const GOOGLE_MAPS_API_KEY = "AIzaSyAyWqbnaAUBNcD69RIZnXQQ6Y-wxIXp_QU";
+  
 
   const getCurrentLocation = async () => {
     try {
